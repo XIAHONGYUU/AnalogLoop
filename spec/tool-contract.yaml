@@ -1,0 +1,359 @@
+# AnalogLoop tool contract
+# Draft 0.1.0 — 2026-10-25
+# This file is the machine-readable companion to docs/tool-contract.md.
+
+contract: analogloop/tool-contract
+version: "0.1.0"
+status: draft
+updated: "2026-10-25"
+license: MIT
+
+principles:
+  - id: typed
+    statement: Every tool has a typed input and output; free-form strings are not a transport.
+  - id: allowlist
+    statement: The policy layer may only call registered tools; it cannot execute arbitrary code.
+  - id: costed
+    statement: Every call declares a cost unit and amount so the budget controller can account for it.
+  - id: auditable
+    statement: Every call is logged with request id, versions, argument hash, and result hash.
+  - id: replayable
+    statement: Given the ledger and pinned versions, the decision chain can be replayed.
+
+envelope:
+  required: [action, request_id, contract_version, args]
+  optional: [budget, rationale]
+  fields:
+    action:
+      type: string
+      description: Tool name from the allowlist.
+    request_id:
+      type: string
+      pattern: "^req-[0-9]{8}-[0-9]{4}$"
+    contract_version:
+      type: string
+      const: "0.1"
+    args:
+      type: object
+    budget:
+      type: object
+      properties:
+        max_fast_calls: {type: integer, minimum: 0}
+        max_spice_calls: {type: integer, minimum: 0}
+    rationale:
+      type: string
+      maxLength: 500
+
+tools:
+  - name: set_spec
+    summary: Create or replace the active specification.
+    cost: {unit: none, amount: 0}
+    side_effects: [write]
+    idempotent: false
+    input:
+      type: object
+      required: [spec]
+      properties:
+        spec:
+          type: object
+          required: [name, metrics, constraints, variables, corners]
+          properties:
+            name: {type: string}
+            metrics: {type: object, additionalProperties: {type: number}}
+            constraints: {type: object, additionalProperties: {type: number}}
+            variables:
+              type: array
+              items:
+                type: object
+                required: [name, min, max]
+                properties:
+                  name: {type: string}
+                  min: {type: number}
+                  max: {type: number}
+                  step: {type: number}
+                  integer: {type: boolean}
+            corners:
+              type: array
+              items:
+                type: object
+                required: [process, temperature_c]
+                properties:
+                  process: {type: string}
+                  temperature_c: {type: number}
+                  supply_v: {type: number}
+    output:
+      type: object
+      required: [spec_id, spec_sha256]
+      properties:
+        spec_id: {type: string}
+        spec_sha256: {type: string}
+    errors: [INVALID_SPEC, SPEC_IMMUTABLE]
+
+  - name: get_state
+    summary: Return a bounded view of the current state, never the full ledger.
+    cost: {unit: none, amount: 0}
+    side_effects: [read]
+    idempotent: true
+    input:
+      type: object
+      properties:
+        include: 
+          type: array
+          items: {type: string, enum: [best, recent_failures, budget, constraints, last_decision]}
+    output:
+      type: object
+      properties:
+        best: {type: object}
+        recent_failures: {type: array, items: {type: object}}
+        budget: {type: object}
+        constraints: {type: object}
+        last_decision: {type: object}
+
+  - name: propose_candidate
+    summary: Propose a sizing candidate with a short rationale; the tool does not run anything.
+    cost: {unit: none, amount: 0}
+    side_effects: [write]
+    idempotent: false
+    input:
+      type: object
+      required: [params, rationale]
+      properties:
+        params: {type: object, additionalProperties: {type: number}}
+        rationale: {type: string, maxLength: 500}
+        strategy: {type: string, enum: [doe, bayesopt, local, random_restart, manual]}
+    output:
+      type: object
+      required: [candidate_id]
+      properties:
+        candidate_id: {type: string}
+        in_range: {type: boolean}
+        violations: {type: array, items: {type: string}}
+    errors: [OUT_OF_RANGE, INVALID_PARAMS]
+
+  - name: check_feasibility
+    summary: Run cheap analytic / gm-id preflight checks before spending simulations.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [candidate_id]
+      properties:
+        candidate_id: {type: string}
+    output:
+      type: object
+      required: [feasible]
+      properties:
+        feasible: {type: boolean}
+        reasons: {type: array, items: {type: string}}
+        estimated_metrics: {type: object, additionalProperties: {type: number}}
+    errors: [UNKNOWN_CANDIDATE]
+
+  - name: evaluate_fast
+    summary: Evaluate a candidate with the registered surrogate and return uncertainty.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [candidate_id, model_id]
+      properties:
+        candidate_id: {type: string}
+        model_id: {type: string}
+        corner: {type: string}
+        temperature_c: {type: number}
+    output:
+      type: object
+      required: [metrics, sigma, ood_score, model_id]
+      properties:
+        metrics: {type: object, additionalProperties: {type: number}}
+        sigma: {type: object, additionalProperties: {type: number}}
+        ood_score: {type: number, minimum: 0, maximum: 1}
+        model_id: {type: string}
+        model_sha256: {type: string}
+    errors: [UNKNOWN_MODEL, OUT_OF_DOMAIN]
+
+  - name: simulate_spice
+    summary: Run a real SPICE simulation. Requires budget authorization.
+    cost: {unit: spice, amount: 1}
+    side_effects: [write, external_process]
+    idempotent: false
+    input:
+      type: object
+      required: [candidate_id, analysis, corner]
+      properties:
+        candidate_id: {type: string}
+        analysis: {type: string, enum: [op, dc, ac, tran, noise, mc]}
+        corner: {type: string}
+        temperature_c: {type: number}
+        netlist_sha256: {type: string}
+    output:
+      type: object
+      required: [metrics, raw_sha256, simulator, model]
+      properties:
+        metrics: {type: object, additionalProperties: {type: number}}
+        raw_sha256: {type: string}
+        simulator: {type: string}
+        simulator_version: {type: string}
+        model: {type: string}
+        model_sha256: {type: string}
+        converged: {type: boolean}
+        warnings: {type: array, items: {type: string}}
+    errors: [BUDGET_DENIED, SPICE_NOT_CONVERGED, NETLIST_INVALID, SIMULATOR_ERROR]
+
+  - name: measure
+    summary: Apply the versioned measurement contract to a raw result.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [raw_id, metrics]
+      properties:
+        raw_id: {type: string}
+        metrics:
+          type: array
+          items: {type: string, enum: [gain_db, ugb_mhz, pm_deg, power_mw, noise_uvrms, offset_mv, slew_v_us, settling_ns, thd_db]}
+        measurement_version: {type: string}
+    output:
+      type: object
+      required: [values, measurement_version]
+      properties:
+        values: {type: object, additionalProperties: {type: number}}
+        measurement_version: {type: string}
+        warnings: {type: array, items: {type: string}}
+    errors: [UNKNOWN_RAW, UNKNOWN_METRIC]
+
+  - name: commit_case
+    summary: Append one immutable case record to the ledger.
+    cost: {unit: none, amount: 0}
+    side_effects: [append]
+    idempotent: false
+    input:
+      type: object
+      required: [record]
+      properties:
+        record:
+          type: object
+          description: Must validate against spec/case-record.schema.json.
+    output:
+      type: object
+      required: [case_id, record_hash]
+      properties:
+        case_id: {type: string}
+        record_hash: {type: string}
+    errors: [SCHEMA_INVALID, DUPLICATE_CASE, HASH_CHAIN_BROKEN]
+
+  - name: query_memory
+    summary: Query cases, skills, or negative knowledge; returns bounded rows with provenance.
+    cost: {unit: fast, amount: 1}
+    side_effects: [read]
+    idempotent: true
+    input:
+      type: object
+      required: [kind]
+      properties:
+        kind: {type: string, enum: [best_case, recent_failures, similar_cases, negative_knowledge, budget_summary]}
+        spec_id: {type: string}
+        corner: {type: string}
+        limit: {type: integer, minimum: 1, maximum: 50}
+    output:
+      type: object
+      properties:
+        rows: {type: array, items: {type: object}}
+        total: {type: integer}
+    errors: [UNKNOWN_QUERY]
+
+  - name: request_budget
+    summary: Ask the controller for additional fast or SPICE budget.
+    cost: {unit: none, amount: 0}
+    side_effects: [write]
+    idempotent: false
+    input:
+      type: object
+      required: [unit, amount]
+      properties:
+        unit: {type: string, enum: [fast, spice, human_minute]}
+        amount: {type: number, minimum: 1}
+        reason: {type: string, maxLength: 300}
+    output:
+      type: object
+      required: [granted, remaining]
+      properties:
+        granted: {type: boolean}
+        remaining: {type: number}
+        denial_reason: {type: string}
+    errors: [BUDGET_DENIED, INVALID_AMOUNT]
+
+  - name: stop
+    summary: End the run with a machine-checkable reason and evidence.
+    cost: {unit: none, amount: 0}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [reason_code]
+      properties:
+        reason_code:
+          type: string
+          enum: [SPEC_MET, BUDGET_EXHAUSTED, MAX_ITER, NO_IMPROVEMENT, INFEASIBLE, OOD_LIMIT, SIM_FAILURE_LIMIT, HUMAN_STOP]
+        evidence_case_ids:
+          type: array
+          items: {type: string}
+        summary: {type: string, maxLength: 500}
+    output:
+      type: object
+      required: [accepted, reason_code]
+      properties:
+        accepted: {type: boolean}
+        reason_code: {type: string}
+        final_case_id: {type: string}
+
+budget:
+  units:
+    fast: one surrogate evaluation
+    spice: one SPICE run, weighted by analysis and corner
+    human_minute: one minute of human review
+  default_weights:
+    fast: 1
+    spice: 1000
+    human_minute: 60000
+  policy:
+    - The controller may deny simulate_spice even if the tool is allowed.
+    - The controller must reserve a confirmation budget for final sign-off.
+    - The controller should not allow fast-path-only completion of a sign-off case.
+
+stop_conditions:
+  - code: SPEC_MET
+    check: All metrics meet spec with margin >= margin_target.
+  - code: BUDGET_EXHAUSTED
+    check: Remaining fast or SPICE budget is zero.
+  - code: MAX_ITER
+    check: Iteration count >= max_iter.
+  - code: NO_IMPROVEMENT
+    check: No improvement for patience consecutive iterations.
+  - code: INFEASIBLE
+    check: Preflight or search proves no feasible point exists in the allowed space.
+  - code: OOD_LIMIT
+    check: Fraction of candidates outside the trust region exceeds ood_limit.
+  - code: SIM_FAILURE_LIMIT
+    check: Consecutive simulator failures exceed failure_limit.
+  - code: HUMAN_STOP
+    check: A human explicitly stops the run.
+
+security:
+  - id: no-arbitrary-code
+    statement: The policy layer cannot execute Python, shell, or arbitrary SPICE decks.
+  - id: path-confinement
+    statement: Tools may only access the workspace runs/, cases/, and netlists/ directories.
+  - id: pdk-access
+    statement: Proprietary PDK access is deployment-specific and must not be logged publicly.
+  - id: rate-limit
+    statement: SPICE concurrency and per-run call counts are capped by the controller.
+  - id: audit
+    statement: Every call records actor, request id, timestamp, argument hash, result hash.
+
+versioning:
+  contract_version: "0.1"
+  schema_version: "0.1.0"
+  compatibility: "Additive changes bump minor; breaking changes bump contract_version."

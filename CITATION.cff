@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this architecture note or its diagrams, please cite it as below."
+title: "AnalogLoop: A Two-Speed, Budget-Aware Agent Architecture for Analog Circuit Sizing"
+abstract: >-
+  A design note for LLM-driven analog circuit sizing that separates a stateless
+  policy layer from a deterministic toolchain, adds a fast surrogate verification
+  path with an explicit promotion gate, and keeps an append-only case ledger for
+  replay and negative knowledge.
+authors:
+  - family-names: "Zuokaiyuann"
+    given-names: "XIAHONGYUU"
+    alias: "XIAHONGYUU"
+    website: "https://github.com/XIAHONGYUU"
+version: "0.1.0"
+date-released: "2026-10-25"
+license: "CC-BY-4.0"
+repository-code: "https://github.com/XIAHONGYUU/analogloop"
+url: "https://github.com/XIAHONGYUU/analogloop"
+keywords:
+  - analog circuit design
+  - LLM agents
+  - EDA
+  - SPICE
+  - surrogate modeling
+  - gm/ID
+  - design automation

@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "case-000001",
+  "created_at": "2026-10-25T12:00:00+08:00",
+  "spec_id": "spec-two-stage-opamp-v1",
+  "candidate": {
+    "topology": "two-stage-opamp-v1",
+    "params": {
+      "w1_um": 20.0,
+      "l1_um": 0.5,
+      "w5_um": 40.0,
+      "l5_um": 1.0,
+      "cc_pf": 1.2,
+      "ibias_ua": 20.0
+    },
+    "corner": "tt",
+    "temperature_c": 27
+  },
+  "evaluation": {
+    "mode": "both",
+    "model_id": "gp-v0.1",
+    "metrics": {
+      "gain_db": 61.2,
+      "ugb_mhz": 102.4,
+      "pm_deg": 58.7,
+      "power_mw": 4.9
+    },
+    "sigma": {
+      "gain_db": 0.6,
+      "ugb_mhz": 3.1,
+      "pm_deg": 1.8,
+      "power_mw": 0.15
+    },
+    "ood_score": 0.04,
+    "spice": {
+      "simulator": "ngspice",
+      "simulator_version": "44.2",
+      "model": "sky130_tt",
+      "corner": "tt",
+      "temperature_c": 27,
+      "raw_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "converged": true,
+      "warnings": [],
+      "metrics": {
+        "gain_db": 60.8,
+        "ugb_mhz": 101.0,
+        "pm_deg": 57.9,
+        "power_mw": 4.95
+      }
+    }
+  },
+  "budget": {
+    "fast_calls": 1,
+    "spice_calls": 1,
+    "wall_ms": 1840
+  },
+  "decision": {
+    "accepted": false,
+    "promotion": "spice",
+    "reason": "PM 57.9 < 60 at tt; keep as a negative example near the boundary."
+  },
+  "provenance": {
+    "contract_version": "0.1",
+    "tool_version": "0.1.0",
+    "git_commit": "0000000",
+    "pdk": "sky130A",
+    "notes": "Synthetic example, not a simulation result."
+  },
+  "prev_hash": "GENESIS",
+  "record_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+}

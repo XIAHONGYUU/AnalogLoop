@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+runs/
+*.raw
+*.log
+_site/
+.quarto/
+node_modules/

@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/XIAHONGYUU/analogloop/spec/case-record.schema.json",
+  "title": "AnalogLoop case record",
+  "description": "One immutable record in the append-only case ledger.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "created_at",
+    "spec_id",
+    "candidate",
+    "evaluation",
+    "budget",
+    "decision",
+    "provenance",
+    "prev_hash",
+    "record_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "case_id": {"type": "string", "pattern": "^case-[0-9]{6}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "spec_id": {"type": "string", "minLength": 1},
+    "candidate": {"$ref": "#/$defs/candidate"},
+    "evaluation": {"$ref": "#/$defs/evaluation"},
+    "budget": {"$ref": "#/$defs/budget"},
+    "decision": {"$ref": "#/$defs/decision"},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "prev_hash": {
+      "oneOf": [
+        {"$ref": "#/$defs/hash"},
+        {"const": "GENESIS"}
+      ]
+    },
+    "record_hash": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^(sha256:)?[a-f0-9]{64}$"
+    },
+    "metric_map": {
+      "type": "object",
+      "additionalProperties": {"type": "number"},
+      "minProperties": 1
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topology", "params", "corner", "temperature_c"],
+      "properties": {
+        "topology": {"type": "string", "minLength": 1},
+        "params": {
+          "type": "object",
+          "additionalProperties": {"type": "number"},
+          "minProperties": 1
+        },
+        "corner": {"type": "string", "minLength": 1},
+        "temperature_c": {"type": "number"}
+      }
+    },
+    "spice_eval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["simulator", "model", "raw_sha256", "metrics"],
+      "properties": {
+        "simulator": {"type": "string"},
+        "simulator_version": {"type": "string"},
+        "model": {"type": "string"},
+        "model_sha256": {"$ref": "#/$defs/hash"},
+        "corner": {"type": "string"},
+        "temperature_c": {"type": "number"},
+        "raw_sha256": {"$ref": "#/$defs/hash"},
+        "converged": {"type": "boolean"},
+        "warnings": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "metrics": {"$ref": "#/$defs/metric_map"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "metrics", "ood_score"],
+      "properties": {
+        "mode": {"type": "string", "enum": ["fast", "spice", "both"]},
+        "model_id": {"type": ["string", "null"]},
+        "metrics": {"$ref": "#/$defs/metric_map"},
+        "sigma": {"$ref": "#/$defs/metric_map"},
+        "ood_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "spice": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/spice_eval"}
+          ]
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fast_calls", "spice_calls", "wall_ms"],
+      "properties": {
+        "fast_calls": {"type": "integer", "minimum": 0},
+        "spice_calls": {"type": "integer", "minimum": 0},
+        "wall_ms": {"type": "number", "minimum": 0}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted", "promotion", "reason"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "promotion": {"type": "string", "enum": ["fast", "spice", "rejected"]},
+        "reason": {"type": "string", "maxLength": 500},
+        "stop_reason": {
+          "type": ["string", "null"],
+          "enum": [
+            "SPEC_MET",
+            "BUDGET_EXHAUSTED",
+            "MAX_ITER",
+            "NO_IMPROVEMENT",
+            "INFEASIBLE",
+            "OOD_LIMIT",
+            "SIM_FAILURE_LIMIT",
+            "HUMAN_STOP",
+            null
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "tool_version", "git_commit"],
+      "properties": {
+        "contract_version": {"const": "0.1"},
+        "tool_version": {"type": "string"},
+        "git_commit": {"type": "string", "pattern": "^[a-f0-9]{7,40}$"},
+        "pdk": {"type": "string"},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}
