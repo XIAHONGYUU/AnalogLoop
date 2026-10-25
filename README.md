@@ -1,234 +1,116 @@
 # AnalogLoop
 
-**以仿真预算为中心、可复现的模拟电路设计 Agent 架构**  
-*A two-speed, budget-aware agent architecture for analog circuit sizing.*
+### AI驱动的模拟电路仿真优化Loop架构
+
+让AI根据设计目标和仿真反馈选择下一轮实验，通过ASST执行仿真、汇总指标，再据结果调整策略。项目从个人模拟设计中的ASST工作流实践出发，研究如何把设计意图、仿真执行和结果验证连接成可复现的优化流程。
 
 [![release](https://img.shields.io/github/v/release/XIAHONGYUU/AnalogLoop?label=release)](https://github.com/XIAHONGYUU/AnalogLoop/releases) [![license](https://img.shields.io/github/license/XIAHONGYUU/AnalogLoop)](LICENSE) [![validate](https://github.com/XIAHONGYUU/AnalogLoop/actions/workflows/validate.yml/badge.svg)](https://github.com/XIAHONGYUU/AnalogLoop/actions/workflows/validate.yml)
 
-> 状态：**v1.0.0 — architecture note freeze**。不是运行时发布，没有 mock 闭环、ngspice demo 或流片验证，也不主张 SOTA。  
-> 这份仓库首先是一份设计思路，其次才是一份可执行的规范。
+> **当前版本：v1.0.0，架构与接口规范。** 已有文档、原创架构图、结构化示例和校验脚本；优化闭环运行时尚待实现。
 
-![AnalogLoop architecture](diagrams/png/architecture.png)
+[从运放示例看流程](#以两级运放为例) · [查看完整架构](docs/architecture.md) · [ASST经验与执行层设计](docs/asst-and-execution.md) · [规范校验](#查看与校验)
 
-## 一句话
+## 先看这个Loop
 
-让 LLM 只做它擅长的事——选策略、读失败、决定何时停；让确定性工具链做执行，让代理模型承担大部分快速迭代，让真实 SPICE 守住最后一道签核。
-
-## 10 分钟阅读路径
-
-1. [架构图 + docs/architecture.md](docs/architecture.md)
-2. [两层验证与晋级门](docs/fast-verification.md)
-3. [语义网表](docs/netlist-semantics.md)
-4. [面积与 layout handoff](docs/area-and-layout.md)
-5. [ASST 执行层](docs/asst-and-execution.md)
-6. [可复原性](docs/reconstructability.md)
-7. [证据边界](docs/evidence-boundaries.md)
-
-评审/简历读者：先看 [docs/for-reviewers.md](docs/for-reviewers.md)。
-
-## 为什么需要“两层验证”
-
-模拟电路设计的真正瓶颈不是 token，而是**仿真次数**。一次 DC/AC 仿真可能几秒，瞬态、PVT、蒙特卡洛可能是分钟到小时。LLM agent 如果把每次“想一想”都变成一次 SPICE，迭代速度不会比人快多少。
-
-但直接用代理模型替换 SPICE 也不安全：
-
-- 95% 的平均精度，可能意味着在 spec 边界上 10% 的误接受；
-- 代理模型只在训练分布内可信，拓扑、角落、偏置一换就可能失效；
-- 相位裕度、启动、失真、失配这些指标，靠近边界时往往是非线性的。
-
-所以这里采用**两种速度**：
-
-| 路径 | 角色 | 典型成本 | 何时使用 |
-|---|---|---|---|
-| 快速代理 | 探索、排序、筛选 | ms–s | 大多数候选 |
-| 真实 SPICE | 签核、边界、抽样复核 | s–min | 少量关键候选 |
-
-中间由一个显式的**晋级门**（promotion gate）决定走哪条路。门看四件事：不确定度、到 spec 的裕量、是否在信任域内、以及这条 case 的关键程度。
-
-> 核心立场：**代理模型是仿真器的 cache，不是仿真器的替代品。** 95% 是预算，不是承诺。
-
-## 架构
-
-五个模块，外加语义网表层、面积层、执行层；两条回路，一个横切控制器：
-
-1. **目标与约束**：设计目标、约束、参数空间、PVT 角落，以及一个可行性预检。
-2. **策略层（LLM）**：理解目标、选择搜索策略、诊断失败、决定何时停；**不做数值计算，不持有数值状态**。
-3. **工具链（确定性）**：解析角色与网表、渲染 deck / 测试台、DoE/BO、调用代理、测量、写账本；只暴露白名单工具。
-4. **验证层（两种速度）**：4a 快速代理；4b 真实 SPICE；中间是晋级门。
-5. **记忆与知识**：case 账本、技能/规则、代理模型、负知识；支持重放。
-
-两条回路：
-
-- **内环**：单条 case 的“提出 → 评估 → 修正”。
-- **外环**：用历史结果修正目标、约束和策略。
-
-横切的**预算与晋级控制器**负责：每条 case 的仿真预算、快慢路径比例、晋级阈值、停机条件。
-
-更完整的说明见 [docs/architecture.md](docs/architecture.md)。
-
-## 网表语义层：让 AI 看见设计意图
-
-SPICE 网表是扁平的：`M1 d g s b nmos` 只说明“有一个管子”，不说明它是输入对、电流镜、cascode、dummy、使能开关还是 ADJ 开关。LLM 只能猜；猜错就会破坏匹配、改错比例、动 dummy。
-
-所以这个仓库在原理图/网表旁边加一份 `roles.yaml`：
-
-- 角色：`input_pair`（对管）、`current_mirror`（电流镜）、`cascode`、`output_stage`（输出管）、`enable_switch`（使能）、`adj_switch`（ADJ）、`dummy` 等；
-- 原理图里可以给 instance 加 `role` / `group` 属性，导出时生成 manifest；没有属性时用命名前缀和推断冷启动；
-- 每个角色带 group、match、ratio、tunable、constraints；
-- `validator` 检查声明与拓扑是否一致（同 W/L、镜像比、开关/dummy 不可调）；
-- agent 只做“resize input_pair 10%”这类**角色级补丁**，不直接改文本；
-- `role_map_sha256` 写进 case 记录，支持重放。
-
-原则：**名字是提示，manifest 是事实，validator 是仲裁。**
-
-```yaml
-blocks:
-  - id: dp
-    role: input_pair
-    devices: [MDP_1, MDP_2]
-    match: {same_wl: true, same_orientation: true, common_centroid: preferred}
+```mermaid
+flowchart LR
+    A[设计目标与约束] --> B[AI策略：选择下一轮实验]
+    B --> C[ASST执行：仿真与指标汇总]
+    C --> D[结果反馈：性能、失败与预算]
+    D --> B
 ```
 
-详见 [docs/netlist-semantics.md](docs/netlist-semantics.md)，图见 [diagrams/png/netlist-semantics.png](diagrams/png/netlist-semantics.png)，示例见 [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml)。
+这是架构中的职责划分：
 
-## 面积与 layout handoff
+| 角色 | 负责什么 |
+| --- | --- |
+| **模拟工程师** | 定义拓扑、目标、可调范围、PVT与测量方法，复核异常并决定是否接受结果 |
+| **AI策略层** | 理解目标与反馈、提出下一组实验、分析失败原因，结合剩余预算建议继续或停止 |
+| **确定性工具链与ASST执行层** | 校验并落实配置、调用仿真器、提取指标、保存可对比的运行记录 |
 
-面积不是“画完版图再统计”的结果，而是和增益、带宽、噪声、功耗并列的设计变量。不考虑面积的 sizing，会系统性地偏向更大的管子、更大的电容，得到一个仿真很好但不可落地的解。
+策略层通过结构化参数与工具接口提出实验；执行与测量规则负责约束每次运行。AI、脚本和工程师的分工，是这套架构的起点。
 
-角色标注让面积可以在画版图之前估出来：
+## 从实际仿真工作流出发
 
-- **器件**：W·L·nf·m，加 S/D、contact、well、guard ring；
-- **group**：matching dummy、common centroid、matching overhead；
-- **block**：routing、periphery、PEX-fix reserve；
-- **输出**：`area_low / nominal / high`、by_role、主导 group、warnings、rule pack 版本。
+在个人模拟设计工作中，我主导了ASST网表仿真工作流的需求与架构设计，借助AI实现脚本，并通过实际使用、发现问题和修正持续迭代：
 
-闭环里使用一个**三值面积门**：
+- 用CSV / Excel配置PVT、参数与预设measure，一键生成可重复运行的环境和文件。
+- 对接Spectre、ALPS、XA，自动启动仿真、集中处理指标，生成Excel汇总并归档对比。
+- 已实际跑通外部AI通过该工作流调用仿真器；ASST本身是执行工具，AI策略由外部提供。
 
-```text
-if area_high <= budget:      PASS
-elif area_low > budget:      REJECT
-else:                        UNCERTAIN -> refine / layout check
+这段实践解决了“如何稳定地执行仿真”。AnalogLoop进一步研究：**下一步该跑什么、如何理解失败、何时值得花费一次真实仿真，以及如何把结果反馈给下一轮决策。**
+
+ASST代码不包含在本仓库中。这里公开的是由这段工程经验形成的架构、接口规范与合成示例。
+
+## 以两级运放为例
+
+已有的[两级运放示例目录](examples/two-stage-opamp/)包含[网表](examples/two-stage-opamp/netlist.cir)、[器件角色](examples/two-stage-opamp/roles.yaml)和[目标规格](examples/two-stage-opamp/spec.yaml)，用于说明输入如何组织。
+
+**以下是架构流程示例，不是一次已运行的优化实验，也不包含实测性能提升。**
+
+| 一轮迭代 | 处理方式 |
+| --- | --- |
+| 定义任务 | 给出增益、带宽、相位裕度、功耗等目标，以及PVT、面积和可调参数范围 |
+| 提出实验 | AI结合当前反馈，提出下一组参数候选及需要运行的分析 |
+| 执行与测量 | 工具链检查候选与角色约束，ASST执行层按配置组织仿真并汇总预设指标 |
+| 理解失败 | 假设相位裕度未满足目标，先结合负载、补偿与测量上下文分析，再在允许范围内提出补偿参数的调整建议 |
+| 反馈与复核 | 将指标、配置与失败原因留在记录中；结合预算决定继续、补充验证或交由工程师复核 |
+
+示例中需要区分的三件事是：**提出候选、运行实验、确认结果**。它们分别有输入、约束和产物，便于工程师检查每一步。
+
+## 三个关键设计
+
+| 设计 | 要解决的工程问题 | 深入阅读 |
+| --- | --- | --- |
+| **设计意图显式化** | 给器件写明角色、匹配组、比例与可调范围，让参数修改遵守电路结构 | [语义网表](docs/netlist-semantics.md) |
+| **快速探索与真实仿真分层** | 用代理模型筛选候选，用真实SPICE复核关键候选和边界情况，并检查代理误接受风险 | [两层验证与晋级门](docs/fast-verification.md) |
+| **预算、面积与实验记录进入Loop** | 在迭代中管理仿真成本和面积约束，保留配置、指标与版本以支持重放 | [面积与版图交接](docs/area-and-layout.md) · [预算与停机](docs/budget-and-convergence.md) · [可复原性](docs/reconstructability.md) |
+
+这些是架构设计主张。快速代理、晋级控制和自动优化的运行效果仍需要后续实现与实验验证。
+
+<details>
+<summary>展开完整架构图与阅读路径</summary>
+
+![AnalogLoop完整架构：目标、AI策略、确定性执行、两层验证与结果反馈](diagrams/png/architecture.png)
+
+- [整体架构](docs/architecture.md)：模块分层、内外回路与失败模式。
+- [ASST执行层](docs/asst-and-execution.md)：工程实践背景与执行接口设计。
+- [gm/ID与PDK数据库](docs/gm-id-and-pdk-database.md)：快速评估路线及适用范围。
+- [记忆与重放](docs/memory-and-replay.md)：case记录、失败知识与重放要求。
+- [相关工作](docs/landscape.md)：与已有方法的关系。
+- [评审指南](docs/for-reviewers.md)：技术评审问题与规范入口。
+
+</details>
+
+## 当前可以检查什么
+
+| 内容 | 当前状态 |
+| --- | --- |
+| 架构文档与七张原创图 | 已提供，覆盖策略、执行、两层验证、角色语义、面积和可复原性 |
+| 工具接口与数据格式 | 已提供22项工具契约、case schema和manifest schema；工具契约用于描述接口 |
+| 两级运放合成示例与校验脚本 | 已提供，可校验数据格式、角色约束、示例一致性及仓库链接 |
+| 优化运行时与仿真效果 | mock闭环、真实ASST adapter、ngspice示例、代理模型及优化效果验证待实现 |
+
+[实现路线图](docs/roadmap.md) · [评测协议](docs/benchmark-protocol.md) · [事实、假设与未知](docs/evidence-boundaries.md)
+
+## 查看与校验
+
+想了解设计思路，可以先看上面的流程与运放示例。想检查结构化产物，可以从以下入口开始：
+
+- [工具契约](spec/tool-contract.yaml)
+- [case记录schema](spec/case-record.schema.json)与[合成记录示例](examples/sample-case.json)
+- [器件角色词表](spec/device-roles.yaml)与[网表manifest schema](spec/netlist-manifest.schema.json)
+
+安装校验脚本所需的`PyYAML`和`jsonschema`后，在仓库根目录运行：
+
+```bash
+python scripts/validate.py
 ```
 
-面积不是标量。建议维护 **area vs power vs speed** 的 Pareto 前沿，而不是压成一个加权和。最后通过 `export_layout_intent` 输出 floorplan intent 与 layout delta（boundary dummy、decap、finger split），review 后作为新 case 回到闭环。
+校验通过说明规范与示例一致，仿真性能仍需独立实验。仓库不包含商业PDK、客户电路或流片数据。
 
-详见 [docs/area-and-layout.md](docs/area-and-layout.md)，图见 [diagrams/png/area-aware-loop.png](diagrams/png/area-aware-loop.png)。
+## 许可与版本
 
-## 执行层：ASST 与 CLI 固化
+文档、图和文字采用[CC BY 4.0](LICENSE)，代码与脚本采用[MIT](LICENSE-CODE)。
 
-AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂移、结果会散落。ASST 用脚本把 CLI 固化：
-
-- **人**：CSV/Excel 配置 PVT、参数、measure；
-- **ASST**：validate → plan → run → collect → summarize；
-- **AI**：调 typed tools，不碰 CLI；
-- **输出**：run dir、`metrics.json`、`summary.xlsx`、archive。
-
-分工：**AI 决定“跑什么”，ASST 决定“怎么跑”，人决定“为什么跑、是否接受”。**
-
-一份可复原的 config（CSV/Excel/JSON 皆可）是**单一真相源**；plan 时生成 `config.json + config_sha256`，所有 run 引用同一个快照。AI 可以读配置、提议 patch，但不能绕过校验。
-
-详见 [docs/asst-and-execution.md](docs/asst-and-execution.md)，图见 [diagrams/png/asst-execution.png](diagrams/png/asst-execution.png)。
-
-## 五条设计原则
-
-1. **无状态的大脑，有状态的实验台。** LLM 不记住“上次跑到第几个点”；所有数值、版本、候选都在账本里。
-2. **仿真预算是一等公民。** 每个决策都要能回答：这次评估花多少、预期换回多少信息、什么时候停止。
-3. **一切可重放。** 网表、模型、种子、工具版本、代理版本都有哈希；给定账本，可以重放出一条相同的决策链。
-4. **设计意图显式化。** 器件的角色、匹配、比例、可调性写进 manifest；名字只是提示，validator 是仲裁。
-5. **执行层固化。** AI 不直接拼 CLI；ASST 负责可复现执行，人保留 CSV/Excel 配置与签核。
-
-## 两条快速验证路线
-
-| | A. gm/ID 表 | B. 学习型 PDK 数据库 |
-|---|---|---|
-| 本质 | 物理启发的低维中间表示 | 器件/电路级代理模型 |
-| 数据 | DC 扫描得到的 gm/ID、fT、gm/gds、Id/W | I-V、C-V、噪声、失配、寄生 |
-| 优点 | 可移植、可解释、数据小 | 快、可微、可覆盖高维空间 |
-| 缺点 | 仍需 SPICE 提取；二阶效应/失配有限 | 需要训练数据；分布外风险；角落覆盖难 |
-| 适合 | 跨 PDK 的早期 sizing | 固定 PDK 内的大量候选筛选 |
-
-两者不是互斥的。更现实的组合是：**用 gm/ID 做特征与约束，用学习型代理做快速打分，用 SPICE 做签核。** 详见 [docs/gm-id-and-pdk-database.md](docs/gm-id-and-pdk-database.md)。
-
-## 95% 怎么定义
-
-不要用一个“全局准确率”验收代理。至少拆成四个指标：
-
-- **精度**：逐指标 |Δ| ≤ 5%（Gain、UGB、PM、Power、Noise、Offset 各自不同）；
-- **工作量**：80–95% 的候选走快路径；
-- **安全**：误接受率（代理说 pass、SPICE 说 fail）≤ 0.5%；
-- **覆盖**：95% 的角落/工况落在信任域内。
-
-其中**误接受率**比平均误差重要。一个平均误差 2%、但在边界上经常误接受的代理，不能用于签核。详见 [docs/fast-verification.md](docs/fast-verification.md)。
-
-## 与现有工作的关系
-
-这个架构不是凭空出现的。2025–2026 年已经有一批非常接近的工作：
-
-- [AnalogCoder-Pro](https://github.com/laiyao1/AnalogCoderPro)（TCAD 2026）把生成、波形诊断和 BO sizing 串起来；
-- [AnalogAgent](https://github.com/TheWind-upBird/Analogagent)（KDD 2026）用多智能体和自演化记忆做跨任务迁移；
-- [AnaFlow](https://arxiv.org/abs/2511.03697) 明确以 sample-efficient、explainable sizing 为目标；
-- [SABLE](https://arxiv.org/abs/2607.03701)（TODAES 2026）在工业 NDA 约束下做闭环，并给出严格的 action contract 与停机条件；
-- [SpiceMCP](https://github.com/oniondas/SpiceMCP) 把优化状态放在 server/SQLite，LLM 只出策略；
-- [AutoCkt](https://github.com/BWRC-AMS-ML-Discovery/AutoCkt) 是 RL sizing 的仿真效率基线；
-- [LASANA](https://arxiv.org/abs/2507.10748) 用 ML 代理替代模拟子块仿真，报告最高三个数量级加速、误差 < 7–8%。
-
-**本仓库不主张一个新算法。** 它主张一组工程上的事：两层验证、预算账本、工具契约、失败知识、语义网表、面积约束、执行层固化、可复原性。完整的对照见 [docs/landscape.md](docs/landscape.md)。
-
-## 仓库导航
-
-| 文件 | 内容 |
-|---|---|
-| [docs/research-question.md](docs/research-question.md) | 问题、范围、六个可证伪假设 |
-| [docs/architecture.md](docs/architecture.md) | 五段架构、两条回路、失败模式 |
-| [docs/fast-verification.md](docs/fast-verification.md) | 两层验证、晋级门、95% 的度量 |
-| [docs/netlist-semantics.md](docs/netlist-semantics.md) | 网表角色、manifest、validator |
-| [docs/area-and-layout.md](docs/area-and-layout.md) | 面积模型、area gate、layout handoff |
-| [docs/asst-and-execution.md](docs/asst-and-execution.md) | ASST 执行层、CLI 固化、AI/脚本/人分工 |
-| [docs/gm-id-and-pdk-database.md](docs/gm-id-and-pdk-database.md) | gm/ID 与学习型 PDK 数据库 |
-| [docs/mcu-analogy.md](docs/mcu-analogy.md) | ISA、中断、存储层次 |
-| [docs/tool-contract.md](docs/tool-contract.md) | 工具白名单与调用契约 |
-| [docs/budget-and-convergence.md](docs/budget-and-convergence.md) | 预算账本与停机条件 |
-| [docs/memory-and-replay.md](docs/memory-and-replay.md) | case 账本、负知识、重放 |
-| [docs/benchmark-protocol.md](docs/benchmark-protocol.md) | simulations-to-spec 怎么测 |
-| [docs/landscape.md](docs/landscape.md) | 与现有工作的对照 |
-| [docs/evidence-boundaries.md](docs/evidence-boundaries.md) | 哪些是事实、假设、未知 |
-| [spec/tool-contract.yaml](spec/tool-contract.yaml) | 机器可读的工具契约 |
-| [spec/case-record.schema.json](spec/case-record.schema.json) | case 账本 schema |
-| [spec/device-roles.yaml](spec/device-roles.yaml) | 角色词表 |
-| [spec/netlist-manifest.schema.json](spec/netlist-manifest.schema.json) | 角色 manifest schema |
-| [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml) | 两级运放角色标注示例 |
-| [docs/reconstructability.md](docs/reconstructability.md) | 配置、版本、archive 的可复原性 |
-| [docs/for-reviewers.md](docs/for-reviewers.md) | 10 分钟评审指南 / 简历一句话 |
-| [CHANGELOG.md](CHANGELOG.md) | 版本记录 |
-
-## 不是什么
-
-- 不是已经完成的 EDA 产品；
-- 不是“LLM 取代模拟设计师”；
-- 不是拓扑生成或版图自动化；
-- 不是流片验证过的结论；
-- 不包含任何受 NDA 约束的 PDK 数据。
-
-## 路线图
-
-- **v1.0.0（当前，冻结）**：架构笔记、七张原创图、工具契约、语义网表、面积模型、ASST 执行层、可复原性检查表。
-- **v1.1**：mock 闭环（不接仿真器）+ 预算账本 + 角色/面积/config 校验 + 重放 + CI。
-- **v1.2**：ngspice + Sky130 两级运放 demo，比较 grid / DoE+BO / LLM 策略。
-- **v1.3**：快速代理 + 晋级门，报告误接受率与面积校准。
-- **v2.0**：第二 PDK + 公开报告 + 外部复现。
-
-详见 [docs/roadmap.md](docs/roadmap.md)。
-
-## 版本
-
-- Release: **v1.0.0**（architecture note freeze）
-- Contracts/schemas: 0.1.0（独立版本；`contract_version=0.1`）
-- 变更记录：[CHANGELOG.md](CHANGELOG.md)
-
-## 许可与引用
-
-- 文档、图、文字：CC BY 4.0（[LICENSE](LICENSE)）。
-- 代码与脚本：MIT（[LICENSE-CODE](LICENSE-CODE)）。
-- 引用信息：[CITATION.cff](CITATION.cff)。
-
-欢迎在 Discussions 里讨论，尤其是：你会在什么指标上接受 5% 的代理误差？你的“误接受”红线是多少？
+[版本记录](CHANGELOG.md) · [引用信息](CITATION.cff) · [v1.0.0原首页](https://github.com/XIAHONGYUU/AnalogLoop/blob/8224866138e5af3d0b410cf8990ff66ee619b4da/README.md)
