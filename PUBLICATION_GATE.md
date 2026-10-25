@@ -31,7 +31,7 @@ discussion is public. This file records the publication boundary.
 ## v0.1 record
 
 - Date: 2026-10-25
-- Published: https://github.com/XIAHONGYUU/analogloop
+- Published: https://github.com/XIAHONGYUU/AnalogLoop
 - Scope: architecture note, four original diagrams, tool contract, case schema,
   benchmark protocol, evidence boundaries.
 - Not included: runnable simulator loop, surrogate weights, proprietary data.

@@ -7,7 +7,7 @@
 
 ## 状态
 
-- v0.1 已发布：https://github.com/XIAHONGYUU/analogloop
+- v0.1 已发布：AnalogLoop（https://github.com/XIAHONGYUU/AnalogLoop）
 - 文档、四张原创图、工具契约、case schema、评测协议已落地。
 - 本地验证通过；CI 已配置（docs 校验 + SVG 确定性检查）。
 - 尚未实现可运行的 mock 闭环；尚未接 ngspice。

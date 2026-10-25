@@ -14,8 +14,8 @@ authors:
 version: "0.1.0"
 date-released: "2026-10-25"
 license: "CC-BY-4.0"
-repository-code: "https://github.com/XIAHONGYUU/analogloop"
-url: "https://github.com/XIAHONGYUU/analogloop"
+repository-code: "https://github.com/XIAHONGYUU/AnalogLoop"
+url: "https://github.com/XIAHONGYUU/AnalogLoop"
 keywords:
   - analog circuit design
   - LLM agents

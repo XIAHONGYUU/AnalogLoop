@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/XIAHONGYUU/analogloop/spec/case-record.schema.json",
+  "$id": "https://github.com/XIAHONGYUU/AnalogLoop/spec/case-record.schema.json",
   "title": "AnalogLoop case record",
   "description": "One immutable record in the append-only case ledger.",
   "type": "object",
