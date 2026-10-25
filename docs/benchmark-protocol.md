@@ -117,6 +117,8 @@ ASST 的 plan / run / collect 必须产生可复现的产物：
 
 Excel 不是事实来源；case 记录以 JSON/哈希为准。
 
+run 中途不允许改 config；要改就生成新 snapshot、新 plan，旧 run 保留旧 hash。
+
 ## 统计
 
 - 每个配置至少 5 个随机种子；

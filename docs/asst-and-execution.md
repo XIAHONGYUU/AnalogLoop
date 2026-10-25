@@ -52,6 +52,68 @@ ASST 是作者此前为个人模拟设计开发的**网表仿真工作流**：
 
 ## 4. 架构：配置 → 计划 → 执行 → 收集 → 汇总
 
+### 4.0 单一真相源：一张 CSV/Excel 为什么能防止跑偏
+
+ASST 的真正价值，不只是“包一层 CLI”，而是把散落在脚本、聊天、日志、临时目录里的真相，收拢到**一张可版本化、可校验、可 diff 的配置表**。
+
+这张表至少包含：
+
+| 类别 | 字段 |
+|---|---|
+| 设计 | 设计名、拓扑、netlist 路径、版本 |
+| 仿真器 | `spectre` / `alps` / `xa`、版本、adapter |
+| 分析 | `op` / `dc` / `ac` / `tran` / `noise` / `mc` |
+| PVT | corner、温度、电源、负载 |
+| 参数 | 扫描变量、范围、步进、离散值 |
+| 测量 | 指标名、定义版本、单位、条件 |
+| 边界 | 允许范围、预算、超时、重试上限 |
+| 输出 | run 目录、summary 路径、archive 路径 |
+| 归属 | owner、创建时间、变更说明 |
+
+**不应该成为真相源的东西**：
+
+- 聊天里“上次好像用的是 ss/125C”；
+- 某次 shell 里临时加的 `-options`；
+- 某个人在 Excel 里手改但没有记录的单元格；
+- 一个只在同事电脑上存在的 wrapper 脚本；
+- 只存在于 raw 文件名里的 corner 信息。
+
+ASST 的做法是：**表是人的入口，也是 AI 的入口；plan 时把表规范化成 `config.json` + `config_sha256`，之后所有 run 都引用这个快照。**
+
+```text
+config.csv / config.xlsx
+  -> normalize + validate
+  -> config.json + config_sha256
+  -> plan.json (references config_sha256)
+  -> run (references plan)
+  -> metrics.json + summary.xlsx + archive
+```
+
+这样，“跑偏”会变成三种可见的东西：
+
+1. **配置 diff**：改了哪个 corner、哪个 measure、哪个参数，一眼能看到；
+2. **plan hash 变化**：配置一变，plan 就变；旧 run 仍然指向旧 hash；
+3. **校验失败**：缺少 corner、measure 未定义、参数越界、单位不对，在花仿真之前就被拒绝。
+
+关键规则：
+
+- **AI 不能绕过表直接改 CLI**；它只能读 config、提议 patch、走校验；
+- **run 中途不允许改 config**；要改就生成新 snapshot、新 plan，旧 run 保留旧 hash；
+- **measure 定义必须版本化**；否则 Excel 里的数字不可比；
+- **Excel 只是人的视图**；机器以 `config.json` / `metrics.json` 为准；
+- **一张表不等于一个 sheet**；可以分 sheet，但必须有一个顶层文件/哈希作为 SSOT。
+
+这也是“AI 操作 ASST”不会跑偏的原因：AI 的上下文可以丢、可以重置，但 config 和 plan 不会。下一次调用只需要读同一个 snapshot，就知道“现在到底在跑什么”。
+
+AI 操作 ASST 的路径：
+
+1. `get_simulation_config` 读当前 snapshot；
+2. `propose_config_patch` 生成 diff + 新 snapshot；
+3. 人/规则审核；
+4. `plan_simulation_batch` → `run_simulation_batch` → `collect_simulation_results`。
+
+AI 不直接写 Excel 单元格，也不直接拼 CLI；所有变更都落在 config diff 上。
+
 ### 4.1 配置层（CSV / Excel）
 
 人用表格配置，而不是直接改脚本。建议的字段：

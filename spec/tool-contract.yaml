@@ -362,6 +362,52 @@ tools:
         area_report_sha256: {type: string}
     errors: [UNKNOWN_CANDIDATE, LAYOUT_INTENT_ERROR]
 
+  - name: get_simulation_config
+    summary: Read the normalized ASST config snapshot and its hash.
+    cost: {unit: none, amount: 0}
+    side_effects: [read]
+    idempotent: true
+    input:
+      type: object
+      required: [config_ref]
+      properties:
+        config_ref: {type: string}
+    output:
+      type: object
+      required: [config, config_sha256, validation]
+      properties:
+        config: {type: object}
+        config_sha256: {type: string}
+        validation: {type: object}
+    errors: [CONFIG_NOT_FOUND]
+
+  - name: propose_config_patch
+    summary: Propose a config change without running; returns a diff and a new snapshot.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: false
+    input:
+      type: object
+      required: [config_ref, patch]
+      properties:
+        config_ref: {type: string}
+        patch: {type: object}
+        rationale: {type: string, maxLength: 500}
+    output:
+      type: object
+      required: [new_config_ref, new_config_sha256, diff, valid]
+      properties:
+        new_config_ref: {type: string}
+        new_config_sha256: {type: string}
+        diff:
+          type: array
+          items: {type: string}
+        valid: {type: boolean}
+        issues:
+          type: array
+          items: {type: string}
+    errors: [CONFIG_NOT_FOUND, PATCH_INVALID]
+
   - name: plan_simulation_batch
     summary: Turn an ASST CSV/Excel config into a reproducible run plan.
     cost: {unit: fast, amount: 1}

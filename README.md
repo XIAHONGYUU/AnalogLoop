@@ -111,6 +111,8 @@ AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂�
 
 分工：**AI 决定“跑什么”，ASST 决定“怎么跑”，人决定“为什么跑、是否接受”。**
 
+一张 CSV/Excel 是**单一真相源**；plan 时生成 `config.json + config_sha256`，所有 run 引用同一个快照。AI 可以读配置、提议 patch，但不能绕过校验。
+
 详见 [docs/asst-and-execution.md](docs/asst-and-execution.md)，图见 [diagrams/png/asst-execution.png](diagrams/png/asst-execution.png)。
 
 ## 五条设计原则

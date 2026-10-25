@@ -27,6 +27,8 @@
 | `check_feasibility` | 静态/解析可行性预检 | 低 | 读 | 不调用 SPICE |
 | `evaluate_fast` | 快速代理评估 | 快 | 写缓存 | 必须返回 sigma / OOD |
 | `simulate_spice` | 真实 SPICE（单次） | 高 | 写原始文件 | 需要预算授权 |
+| `get_simulation_config` | 读规范化 config + hash | 0 | 读 | 不返回隐藏状态 |
+| `propose_config_patch` | 提议配置变更 | 低 | 写 | 返回 diff + 新 snapshot |
 | `plan_simulation_batch` | 配置 → 可重放 plan | 低 | 写 | 记录 config/plan 哈希 |
 | `run_simulation_batch` | 执行 ASST 批次 | 高 | 写 + 外部进程 | 需要预算/许可证 |
 | `collect_simulation_results` | 解析 measure / 汇总 | 低 | 写 | 生成 summary + archive |
@@ -129,6 +131,12 @@
 5. 只有校验通过，才允许 `simulate_spice`。
 
 失败时返回 typed 错误（`ROLE_NOT_TUNABLE`、`VALIDATION_FAILED`），并写进 case 记录。这样“AI 改了网表”永远是一条可审计的角色级补丁，而不是一段无法解释的文本 diff。
+
+配置读写是 ASST 的 SSOT 入口：
+
+- `get_simulation_config`：读 `config.json + config_sha256`，AI 只看到规范化后的真相；
+- `propose_config_patch`：生成新 snapshot、diff、校验结果，不直接跑仿真；
+- 人审核 diff 后，才 `plan_simulation_batch`；run 中途改配置必须走新 snapshot。
 
 ## ASST 执行批次
 

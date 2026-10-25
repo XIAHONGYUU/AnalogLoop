@@ -906,7 +906,7 @@ def asst_execution():
     s.append(header(
         W,
         "ASST：AI、脚本、人各做什么",
-        "AI 发意图，ASST 固化 CLI，人用 CSV/Excel 配置并签核。",
+        "AI 发意图，ASST 固化 CLI；一张 CSV/Excel 是唯一真相源。",
     ))
 
     # Human
@@ -928,7 +928,7 @@ def asst_execution():
     # ASST container
     s.append(rect(410, 180, 620, 440, AMBER_BG, AMBER, 1.5, 14))
     s.append(text(440, 214, "ASST 执行层", 19, AMBER, 700))
-    s.append(text(440, 238, "配置 → 计划 → 执行 → 收集 → 汇总", 11.0, MUTED))
+    s.append(text(440, 238, "SSOT: config.csv/xlsx → config.json + sha256 → plan", 10.4, MUTED))
     stages = [
         ("validate", "CSV/Excel → schema", "配置校验"),
         ("plan", "run dir · PVT matrix · hash", "可重放计划"),
@@ -976,6 +976,10 @@ def asst_execution():
     # summarize -> results
     s.append(arrow(980, 545, 1096, 545, TEAL, 2.0, None, 9))
     s.append(text(1002, 535, "Excel", 10.5, TEAL))
+
+    # SSOT band
+    s.append(rect(410, 628, 620, 34, GRAY_BG, "#cfd8e3", 1.0, 8))
+    s.append(text(430, 650, "AI 只能改 config；run 中途改配置 → 新 snapshot / 新 plan", 10.2, INK))
 
     # Bottom panel
     py = 680

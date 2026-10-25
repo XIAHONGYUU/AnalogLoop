@@ -28,7 +28,7 @@ discussion is public. This file records the publication boundary.
 - [x] `CITATION.cff` version and date match the release.
 - [x] Git history contains no secrets or large binaries.
 
-## v0.1.3 record
+## v0.1.4 record
 
 - Date: 2026-10-25
 - Published: https://github.com/XIAHONGYUU/AnalogLoop
@@ -37,4 +37,5 @@ discussion is public. This file records the publication boundary.
 - Added in 0.1.1: netlist semantics layer (device roles, manifest schema, example, validator).
 - Added in 0.1.2: area-aware loop (area model, area gate, layout handoff, estimate_area/export_layout_intent).
 - Added in 0.1.3: ASST execution layer (CSV/Excel config, plan/run/collect, Excel summary and archive).
+- Added in 0.1.4: ASST single-source config (normalized config snapshot, read/patch tools, anti-drift rules).
 - Not included: runnable simulator loop, surrogate weights, proprietary data.

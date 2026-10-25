@@ -52,7 +52,7 @@
 - `analogloop.gate`：晋级门；
 - `analogloop.roles`：角色 manifest 解析与校验；
 - `analogloop.area`：预布局面积估计（core / ring / routing / dummy / periphery）；
-- `analogloop.asst`：ASST 风格的 plan/run/collect 适配层（mock 后端）；
+- `analogloop.asst`：ASST 风格的 plan/run/collect 适配层（mock 后端），以单一 config 为 SSOT；
 - `analogloop.layout_intent`：floorplan intent 与 layout delta 的接口；
 - `analogloop.ledger`：append-only JSONL + 哈希链；
 - `analogloop.replay`：重放；
@@ -66,6 +66,7 @@
 - 角色违规（匹配、比例、开关）在仿真前被拒绝；
 - 面积超限在仿真前被 area gate 拒绝；
 - ASST plan 的 config/plan 哈希可重放；
+- run 中途改 config 会被拒绝，必须生成新 snapshot/plan；
 - 单元测试覆盖预算、门、角色、账本。
 
 ## v0.3：真实 SPICE

@@ -107,6 +107,8 @@ LLM 的职责被刻意限制为四件事：
 - **执行**：`run_simulation_batch` 调 simulator adapter，记录 license/环境/日志/退出码；
 - **收集**：`collect_simulation_results` 解析 measure，生成 `metrics.json`、`summary.xlsx` 和 archive。
 
+ASST 的单一真相源是 config：`plan` 把 CSV/Excel 规范化为 `config.json + config_sha256`，所有 run 引用同一个 snapshot。AI 可以读/提议 patch，但不能在 run 中途改配置；要改就生成新 snapshot 和新 plan。
+
 AI 只调 typed tools；人保留配置面和签核；脚本保证可复现。详见 [asst-and-execution.md](asst-and-execution.md)。
 
 ## 两条回路
