@@ -37,7 +37,8 @@
 - MCU 类比的映射与“三条边界”；
 - 对 gm/ID 与学习型数据库的适用边界判断；
 - 语义网表的三层表示、角色词表与 validator 规则；
-- ASST 执行层的三层分工（AI/脚本/人）与 plan/run/collect 接口。
+- ASST 执行层的三层分工（AI/脚本/人）与 plan/run/collect 接口；
+- 可复原性检查表（config/netlist/PDK/simulator/scripts/seeds/measure/archive）。
 - 角色感知的面积分解（core / ring / routing / dummy / periphery / reserve）与三值面积门。
 
 这些判断可能错。它们应该被实验、反例或更好的论证修正。
@@ -76,7 +77,7 @@
 - 没有流片，没有 silicon correlation；
 - 没有在商业 PDK 上跑过；
 - 没有训练代理模型；
-- 没有实现完整的 mock 闭环（v0.1 只有文档、spec、示例网表、校验器与面积接口）；
+- 没有实现完整的 mock 闭环（v1.0.0 只有文档、spec、示例网表、校验器与面积/执行接口）；
 - 没有复现论文数字。
 
 ## 图与文字来源

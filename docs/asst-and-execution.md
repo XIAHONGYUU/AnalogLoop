@@ -52,11 +52,11 @@ ASST 是作者此前为个人模拟设计开发的**网表仿真工作流**：
 
 ## 4. 架构：配置 → 计划 → 执行 → 收集 → 汇总
 
-### 4.0 单一真相源：一张 CSV/Excel 为什么能防止跑偏
+### 4.0 单一真相源：一份可复原的 config 为什么能防止跑偏
 
-ASST 的真正价值，不只是“包一层 CLI”，而是把散落在脚本、聊天、日志、临时目录里的真相，收拢到**一张可版本化、可校验、可 diff 的配置表**。
+ASST 的真正价值，不只是“包一层 CLI”，而是把散落在脚本、聊天、日志、临时目录里的真相，收拢到**一份可复原的 config**。格式可以是 CSV、Excel 或 JSON；关键是它能复原整个仿真环境。
 
-这张表至少包含：
+这份 config 至少包含：
 
 | 类别 | 字段 |
 |---|---|
@@ -78,7 +78,7 @@ ASST 的真正价值，不只是“包一层 CLI”，而是把散落在脚本�
 - 一个只在同事电脑上存在的 wrapper 脚本；
 - 只存在于 raw 文件名里的 corner 信息。
 
-ASST 的做法是：**表是人的入口，也是 AI 的入口；plan 时把表规范化成 `config.json` + `config_sha256`，之后所有 run 都引用这个快照。**
+ASST 的做法是：**config 是人的入口，也是 AI 的入口；plan 时把它规范化成 `config.json` + `config_sha256`，之后所有 run 都引用这个快照。**
 
 ```text
 config.csv / config.xlsx
@@ -112,7 +112,7 @@ AI 操作 ASST 的路径：
 3. 人/规则审核；
 4. `plan_simulation_batch` → `run_simulation_batch` → `collect_simulation_results`。
 
-AI 不直接写 Excel 单元格，也不直接拼 CLI；所有变更都落在 config diff 上。
+AI 不直接写 Excel 单元格，也不直接拼 CLI；所有变更都落在 config diff 上。完整的可复原性 checklist 见 [reconstructability.md](reconstructability.md)。
 
 ### 4.1 配置层（CSV / Excel）
 

@@ -3,7 +3,9 @@
 **以仿真预算为中心、可复现的模拟电路设计 Agent 架构**  
 *A two-speed, budget-aware agent architecture for analog circuit sizing.*
 
-> 状态：v0.1 架构构想（design note）。不是已完成的系统，没有流片验证，也不主张 SOTA。  
+[![release](https://img.shields.io/github/v/release/XIAHONGYUU/AnalogLoop?label=release)](https://github.com/XIAHONGYUU/AnalogLoop/releases) [![license](https://img.shields.io/github/license/XIAHONGYUU/AnalogLoop)](LICENSE) [![validate](https://github.com/XIAHONGYUU/AnalogLoop/actions/workflows/validate.yml/badge.svg)](https://github.com/XIAHONGYUU/AnalogLoop/actions/workflows/validate.yml)
+
+> 状态：**v1.0.0 — architecture note freeze**。不是运行时发布，没有 mock 闭环、ngspice demo 或流片验证，也不主张 SOTA。  
 > 这份仓库首先是一份设计思路，其次才是一份可执行的规范。
 
 ![AnalogLoop architecture](diagrams/png/architecture.png)
@@ -11,6 +13,18 @@
 ## 一句话
 
 让 LLM 只做它擅长的事——选策略、读失败、决定何时停；让确定性工具链做执行，让代理模型承担大部分快速迭代，让真实 SPICE 守住最后一道签核。
+
+## 10 分钟阅读路径
+
+1. [架构图 + docs/architecture.md](docs/architecture.md)
+2. [两层验证与晋级门](docs/fast-verification.md)
+3. [语义网表](docs/netlist-semantics.md)
+4. [面积与 layout handoff](docs/area-and-layout.md)
+5. [ASST 执行层](docs/asst-and-execution.md)
+6. [可复原性](docs/reconstructability.md)
+7. [证据边界](docs/evidence-boundaries.md)
+
+评审/简历读者：先看 [docs/for-reviewers.md](docs/for-reviewers.md)。
 
 ## 为什么需要“两层验证”
 
@@ -35,7 +49,7 @@
 
 ## 架构
 
-五个模块、两条回路、一个横切控制器：
+五个模块，外加语义网表层、面积层、执行层；两条回路，一个横切控制器：
 
 1. **目标与约束**：设计目标、约束、参数空间、PVT 角落，以及一个可行性预检。
 2. **策略层（LLM）**：理解目标、选择搜索策略、诊断失败、决定何时停；**不做数值计算，不持有数值状态**。
@@ -111,7 +125,7 @@ AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂�
 
 分工：**AI 决定“跑什么”，ASST 决定“怎么跑”，人决定“为什么跑、是否接受”。**
 
-一张 CSV/Excel 是**单一真相源**；plan 时生成 `config.json + config_sha256`，所有 run 引用同一个快照。AI 可以读配置、提议 patch，但不能绕过校验。
+一份可复原的 config（CSV/Excel/JSON 皆可）是**单一真相源**；plan 时生成 `config.json + config_sha256`，所有 run 引用同一个快照。AI 可以读配置、提议 patch，但不能绕过校验。
 
 详见 [docs/asst-and-execution.md](docs/asst-and-execution.md)，图见 [diagrams/png/asst-execution.png](diagrams/png/asst-execution.png)。
 
@@ -158,7 +172,7 @@ AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂�
 - [AutoCkt](https://github.com/BWRC-AMS-ML-Discovery/AutoCkt) 是 RL sizing 的仿真效率基线；
 - [LASANA](https://arxiv.org/abs/2507.10748) 用 ML 代理替代模拟子块仿真，报告最高三个数量级加速、误差 < 7–8%。
 
-**本仓库不主张一个新算法。** 它主张三件工程上的事：把预算账本显式化、把工具契约公开化、把失败知识一等公民化。完整的对照见 [docs/landscape.md](docs/landscape.md)。
+**本仓库不主张一个新算法。** 它主张一组工程上的事：两层验证、预算账本、工具契约、失败知识、语义网表、面积约束、执行层固化、可复原性。完整的对照见 [docs/landscape.md](docs/landscape.md)。
 
 ## 仓库导航
 
@@ -183,6 +197,9 @@ AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂�
 | [spec/device-roles.yaml](spec/device-roles.yaml) | 角色词表 |
 | [spec/netlist-manifest.schema.json](spec/netlist-manifest.schema.json) | 角色 manifest schema |
 | [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml) | 两级运放角色标注示例 |
+| [docs/reconstructability.md](docs/reconstructability.md) | 配置、版本、archive 的可复原性 |
+| [docs/for-reviewers.md](docs/for-reviewers.md) | 10 分钟评审指南 / 简历一句话 |
+| [CHANGELOG.md](CHANGELOG.md) | 版本记录 |
 
 ## 不是什么
 
@@ -194,13 +211,19 @@ AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂�
 
 ## 路线图
 
-- **v0.1（当前）**：架构笔记、七张原创图、工具契约、语义网表、面积模型、ASST 执行层、评测协议。
-- **v0.2**：mock 闭环（不接仿真器）+ 预算账本 + 角色 manifest/validator + 面积估计 + ASST 风格执行适配层 + 重放脚本 + CI。
-- **v0.3**：ngspice + Sky130 两级运放 demo，比较 grid / DoE+BO / LLM 策略。
-- **v0.4**：快速代理 + 晋级门，报告误接受率。
-- **v1.0**：Quarto/Pages 报告 + 可复现实验。
+- **v1.0.0（当前，冻结）**：架构笔记、七张原创图、工具契约、语义网表、面积模型、ASST 执行层、可复原性检查表。
+- **v1.1**：mock 闭环（不接仿真器）+ 预算账本 + 角色/面积/config 校验 + 重放 + CI。
+- **v1.2**：ngspice + Sky130 两级运放 demo，比较 grid / DoE+BO / LLM 策略。
+- **v1.3**：快速代理 + 晋级门，报告误接受率与面积校准。
+- **v2.0**：第二 PDK + 公开报告 + 外部复现。
 
 详见 [docs/roadmap.md](docs/roadmap.md)。
+
+## 版本
+
+- Release: **v1.0.0**（architecture note freeze）
+- Contracts/schemas: 0.1.0（独立版本；`contract_version=0.1`）
+- 变更记录：[CHANGELOG.md](CHANGELOG.md)
 
 ## 许可与引用
 

@@ -111,6 +111,17 @@ ASST 的单一真相源是 config：`plan` 把 CSV/Excel 规范化为 `config.js
 
 AI 只调 typed tools；人保留配置面和签核；脚本保证可复现。详见 [asst-and-execution.md](asst-and-execution.md)。
 
+## 可复原性
+
+给定 config、netlist、PDK/model、simulator、scripts、seeds、measure contract 和 archive，能否在另一台机器上复原同一个 run？这是比“脚本能跑”更硬的标准。
+
+- config 可以是 CSV、Excel 或 JSON；关键是只有一个 canonical hash；
+- plan 引用 config hash，run 引用 plan；
+- run 中途改 config 必须生成新 snapshot，旧 run 保留旧 hash；
+- 结果、日志、退出码、raw 文件都进 archive。
+
+详见 [reconstructability.md](reconstructability.md)。
+
 ## 两条回路
 
 - **内环**：单条 case 内，“提出候选 → 评估 → 测量 → 修正”。

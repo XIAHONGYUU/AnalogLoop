@@ -906,7 +906,7 @@ def asst_execution():
     s.append(header(
         W,
         "ASST：AI、脚本、人各做什么",
-        "AI 发意图，ASST 固化 CLI；一张 CSV/Excel 是唯一真相源。",
+        "AI 发意图，ASST 固化 CLI；一份可复原的 config 是唯一真相源。",
     ))
 
     # Human
@@ -928,7 +928,7 @@ def asst_execution():
     # ASST container
     s.append(rect(410, 180, 620, 440, AMBER_BG, AMBER, 1.5, 14))
     s.append(text(440, 214, "ASST 执行层", 19, AMBER, 700))
-    s.append(text(440, 238, "SSOT: config.csv/xlsx → config.json + sha256 → plan", 10.4, MUTED))
+    s.append(text(440, 238, "SSOT: config (CSV/Excel/JSON) → snapshot + sha256 → plan", 9.8, MUTED))
     stages = [
         ("validate", "CSV/Excel → schema", "配置校验"),
         ("plan", "run dir · PVT matrix · hash", "可重放计划"),

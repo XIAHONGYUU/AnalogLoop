@@ -10,6 +10,8 @@ discussion is public. This file records the publication boundary.
 - `spec/` contracts and schemas.
 - `examples/` synthetic or open-PDK examples.
 - Links to public papers, projects, and tools.
+- `CHANGELOG.md`, `docs/reconstructability.md`, `docs/for-reviewers.md`.
+- `scripts/` (diagram generator and repository validator).
 
 ## Not approved for public release
 
@@ -28,14 +30,15 @@ discussion is public. This file records the publication boundary.
 - [x] `CITATION.cff` version and date match the release.
 - [x] Git history contains no secrets or large binaries.
 
-## v0.1.4 record
+## v1.0.0 record
 
 - Date: 2026-10-25
 - Published: https://github.com/XIAHONGYUU/AnalogLoop
 - Scope: architecture note, seven original diagrams, tool contract, case schema,
-  netlist role manifest, role vocabulary, area model, ASST execution layer, benchmark protocol, evidence boundaries.
+  netlist role manifest, role vocabulary, area model, ASST execution layer, reconstructability checklist, reviewer guide, benchmark protocol, evidence boundaries.
 - Added in 0.1.1: netlist semantics layer (device roles, manifest schema, example, validator).
 - Added in 0.1.2: area-aware loop (area model, area gate, layout handoff, estimate_area/export_layout_intent).
-- Added in 0.1.3: ASST execution layer (CSV/Excel config, plan/run/collect, Excel summary and archive).
+- Added in 0.1.3: ASST execution layer (config in CSV/Excel/JSON, plan/run/collect, summary and archive).
 - Added in 0.1.4: ASST single-source config (normalized config snapshot, read/patch tools, anti-drift rules).
+- v1.0.0: architecture note freeze; release tag v1.0.0; reconstructability checklist; reviewer guide; changelog.
 - Not included: runnable simulator loop, surrogate weights, proprietary data.
