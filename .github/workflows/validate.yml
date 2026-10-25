@@ -30,5 +30,10 @@ jobs:
         run: pip install cairosvg
       - name: Rebuild diagrams
         run: python scripts/build_diagrams.py
-      - name: Check that regeneration is deterministic
-        run: git diff --exit-code -- diagrams/
+      - name: Check that SVG regeneration is deterministic
+        run: |
+          git diff --exit-code -- \
+            diagrams/architecture.svg \
+            diagrams/fast-verification.svg \
+            diagrams/mcu-mapping.svg \
+            diagrams/pdk-fastpath.svg

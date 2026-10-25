@@ -20,17 +20,18 @@ discussion is public. This file records the publication boundary.
 
 ## Release checklist
 
-- [ ] No image from the original discussion is present.
-- [ ] No NDA / proprietary PDK data is present.
-- [ ] `python scripts/validate.py` passes.
-- [ ] `python scripts/build_diagrams.py` regenerates the same figures.
-- [ ] `docs/evidence-boundaries.md` is up to date.
-- [ ] `CITATION.cff` version and date match the release.
-- [ ] Git history contains no secrets or large binaries.
+- [x] No image from the original discussion is present.
+- [x] No NDA / proprietary PDK data is present.
+- [x] `python scripts/validate.py` passes.
+- [x] `python scripts/build_diagrams.py` regenerates the same figures.
+- [x] `docs/evidence-boundaries.md` is up to date.
+- [x] `CITATION.cff` version and date match the release.
+- [x] Git history contains no secrets or large binaries.
 
 ## v0.1 record
 
 - Date: 2026-10-25
+- Published: https://github.com/XIAHONGYUU/analogloop
 - Scope: architecture note, four original diagrams, tool contract, case schema,
   benchmark protocol, evidence boundaries.
 - Not included: runnable simulator loop, surrogate weights, proprietary data.

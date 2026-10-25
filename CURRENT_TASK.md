@@ -2,22 +2,22 @@
 
 ## 当前目标
 
-发布 AnalogLoop v0.1：一份以“仿真预算 + 两层验证”为中心的模拟电路设计
-Agent 架构笔记，包含原创图、工具契约、case schema、评测协议和证据边界。
+维护并推进 AnalogLoop v0.2：在已发布的 v0.1 架构笔记基础上，实现一个不依赖
+仿真器的 mock 闭环，验证预算账本、晋级门、case 哈希链与重放。
 
 ## 状态
 
-- 仓库已创建，文档、图、spec 已落地。
-- 已生成四张原创图：architecture、fast-verification、mcu-mapping、pdk-fastpath。
+- v0.1 已发布：https://github.com/XIAHONGYUU/analogloop
+- 文档、四张原创图、工具契约、case schema、评测协议已落地。
+- 本地验证通过；CI 已配置（docs 校验 + SVG 确定性检查）。
 - 尚未实现可运行的 mock 闭环；尚未接 ngspice。
-- 尚未公开推送（等待最终检查）。
 
 ## 下一步原子动作
 
-1. 运行 `scripts/validate.py` 与链接检查。
-2. 本地提交。
-3. 创建 `XIAHONGYUU/analogloop` 公开仓库并推送。
-4. 补充 topics 与仓库描述。
+1. 建立 `analogloop/` Python 包骨架。
+2. 实现 mock 仿真器、预算账本、晋级门、JSONL 哈希链。
+3. 实现重放命令与单元测试。
+4. 在 README 增加 v0.2 的复现命令。
 
 ## 约束
 
@@ -28,8 +28,8 @@ Agent 架构笔记，包含原创图、工具契约、case schema、评测协议
 
 ## 完成标准
 
-- 所有相对链接可解析。
+- 四张 PNG 视觉检查通过。
 - `spec/tool-contract.yaml` 可被 YAML 解析。
 - `spec/case-record.schema.json` 可被 JSON Schema 校验器加载。
-- 三张 PNG 视觉检查通过。
+- mock 闭环可在固定种子下重放。
 - GitHub 仓库公开可访问，README 首图正常渲染。

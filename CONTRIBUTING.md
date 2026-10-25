@@ -20,6 +20,7 @@ additional slogans.
 3. **Cite sources.** Preprints are fine; label them as preprints.
 4. **Do not claim silicon validation** unless you have it.
 5. **Keep diagrams generated.** Edit `scripts/build_diagrams.py`, not only the SVG.
+   CI checks SVG determinism; PNG bytes may vary with the local cairo build.
 
 ## Local checks
 
