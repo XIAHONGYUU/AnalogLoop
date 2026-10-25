@@ -362,6 +362,74 @@ tools:
         area_report_sha256: {type: string}
     errors: [UNKNOWN_CANDIDATE, LAYOUT_INTENT_ERROR]
 
+  - name: plan_simulation_batch
+    summary: Turn an ASST CSV/Excel config into a reproducible run plan.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [config_ref]
+      properties:
+        config_ref: {type: string}
+        candidate_id: {type: string}
+    output:
+      type: object
+      required: [plan_id, plan_sha256, config_sha256, run_count]
+      properties:
+        plan_id: {type: string}
+        plan_sha256: {type: string}
+        config_sha256: {type: string}
+        run_count: {type: integer}
+        warnings:
+          type: array
+          items: {type: string}
+    errors: [CONFIG_INVALID, PLAN_ERROR]
+
+  - name: run_simulation_batch
+    summary: Execute a planned ASST batch through the simulator adapters.
+    cost: {unit: spice, amount: 1}
+    side_effects: [write, external_process]
+    idempotent: false
+    input:
+      type: object
+      required: [plan_id]
+      properties:
+        plan_id: {type: string}
+        resume: {type: boolean}
+    output:
+      type: object
+      required: [batch_id, run_ids, status]
+      properties:
+        batch_id: {type: string}
+        run_ids:
+          type: array
+          items: {type: string}
+        status: {type: string, enum: [queued, running, done, failed, partial]}
+    errors: [PLAN_NOT_FOUND, LICENSE_ERROR, SIMULATOR_ERROR]
+
+  - name: collect_simulation_results
+    summary: Parse measures, write metrics.json, Excel summary and archive.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [batch_id]
+      properties:
+        batch_id: {type: string}
+    output:
+      type: object
+      required: [metrics, summary_path, archive_sha256]
+      properties:
+        metrics: {type: object}
+        summary_path: {type: string}
+        archive_sha256: {type: string}
+        warnings:
+          type: array
+          items: {type: string}
+    errors: [BATCH_NOT_FOUND, MEASURE_ERROR]
+
   - name: commit_case
     summary: Append one immutable case record to the ledger.
     cost: {unit: none, amount: 0}

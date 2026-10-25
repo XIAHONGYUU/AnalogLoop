@@ -60,7 +60,7 @@
 
 ## 4. 一个透明的面积模型
 
-下面是一个简化的、可追溯的模型（参考配套 analog2layout 原型的分解方式）：
+下面是一个简化的、可追溯的模型：
 
 ### 4.1 器件
 
@@ -147,7 +147,7 @@ area_target = area_budget / (1 + area_guardband)
 - 让策略层选择“在面积约束下最大化性能”或“在性能约束下最小化面积”，而不是替用户决定权重；
 - 对 `UNCERTAIN` 的解，单独标记，不混进“可行解”统计。
 
-## 7. 和 analog2layout 的接口
+## 7. 和 layout 工具的接口
 
 面积估算不是终点。一个完整的 handoff 需要三样东西：
 
@@ -155,27 +155,9 @@ area_target = area_budget / (1 + area_guardband)
 2. **floorplan intent**：white-line 的相对 placement、symmetry、matching group、routing channel、dummy/decap reservation；
 3. **layout delta**：边界 dummy、decap、finger split、guard ring 等“可预见的小改动”，每条带 area impact、owner、reason、status。
 
-### 7.1 词表对齐
+### 7.1 输入方式
 
-配套原型使用自己的角色名：`tail_current`、`compensation`、`bias`。本仓库的 canonical 是 `tail_source`、`compensation_cap`、`bias_reference`。映射在 [../spec/role-mapping.yaml](../spec/role-mapping.yaml)：
-
-| canonical | a2l_role | 说明 |
-|---|---|---|
-| `tail_source` | `tail_current` | 尾电流源 |
-| `compensation_cap` | `compensation` | 补偿电容 |
-| `bias_reference` | `bias` | 偏置 |
-| `active_load` | null | 原型暂归入 bias/mirror，待扩展 |
-| `nulling_resistor` | null | 原型没有 |
-| `load_cap` | null | testbench 元素 |
-| `sense` | `sense` | 两边都有 |
-| `startup` / `protection` | null | 原型没有 |
-
-两种输入方式：
-
-- **manifest-first**：面积工具直接读 `netlist.cir + roles.yaml`，这是 canonical；
-- **inline-first**：配套原型接受 `role= / match= / group=` 参数；导出器可以把 manifest 写成 inline 参数。
-
-不要让两种方式各维护一份事实。建议 manifest 是唯一事实，inline 只是导出格式。
+面积工具可以读 `netlist.cir + roles.yaml`，也可以接受 `role= / match= / group=` 作为导出格式。manifest 是唯一事实，inline 只是导出格式。
 
 推荐的工具接口：
 
@@ -247,7 +229,7 @@ candidate + roles.yaml
 
 模拟版图自动化（ALIGN、BAG、MAGICAL 等）关注的是从网表/约束生成可制造版图；面积估算通常是其中的一个子步骤。本仓库不重复做 P&R，而是把面积作为**sizing 闭环的约束**，并把角色、面积报告、floorplan intent、layout delta 串成一个可审计的 handoff。
 
-配套的 analog2layout 原型正在实现 area / floorplan / delta；本仓库定义它在 AnalogLoop 里的接口和验收口径。
+面积模型与具体 layout 工具解耦；本仓库只定义接口和验收口径。
 
 ## 11. 局限
 

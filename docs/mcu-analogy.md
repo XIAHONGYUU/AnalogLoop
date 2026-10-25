@@ -22,6 +22,7 @@
 | 真实 SPICE | DRAM | 慢、精确、最终真值 | DRAM 不会“算错”；SPICE 有收敛/模型误差 |
 | 记忆与账本 | Flash / 磁盘 | 持久化、可恢复 | Flash 不学习；账本可以积累知识 |
 | 预算控制器 | 调度器 / 功耗管理 | 分配有限资源 | 这里的资源是仿真次数 |
+| ASST 执行层 | HAL / 外设驱动 | 固化命令、环境、结果解析 | 人可配置，AI 只调工具 |
 | 晋级门 | Cache 控制器 / MMU | 决定命中还是回退 | 这里的“miss”代价是仿真时间 |
 
 ## ISA = 工具契约
@@ -35,7 +36,10 @@ CPU 的指令集是软件与硬件之间的契约：有限、typed、可验证�
 - `apply_role_patch`：角色级修改；
 - `evaluate_fast`：请求快速评估；
 - `estimate_area`：估算 pre-layout 面积；
-- `simulate_spice`：请求真值；
+- `plan_simulation_batch`：配置 → plan；
+- `run_simulation_batch`：执行批次；
+- `collect_simulation_results`：解析/汇总；
+- `simulate_spice`：请求单次真值；
 - `measure`：按固定定义读取指标；
 - `commit_case`：写账本；
 - `query_memory`：查询历史；

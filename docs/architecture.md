@@ -2,12 +2,13 @@
 
 ## 设计立场
 
-这个架构不是“让 LLM 设计电路”，而是**让 LLM 管理一个实验**。由此得到四条立场：
+这个架构不是“让 LLM 设计电路”，而是**让 LLM 管理一个实验**。由此得到五条立场：
 
 1. **策略与机制分离。** LLM 决定“试什么、为什么、何时停”；执行由确定性代码完成。
 2. **仿真器是唯一真值。** 代理模型可以快，但不能替代签核。
 3. **记忆是一等公民。** 事实、启发式、代理模型、失败原因分开存储。
 4. **预算是控制信号。** 每次评估都要记账，预算控制器可以否决策略层的请求。
+5. **执行层固化。** AI 不直接拼 CLI；ASST 把命令、环境、结果解析固化成批次接口，人保留配置面。
 
 ## 五个模块
 
@@ -42,6 +43,7 @@ LLM 的职责被刻意限制为四件事：
 - DoE、BO、局部搜索、successive halving；
 - 调用快速代理；
 - 运行 SPICE（通过适配器）；
+- 通过 ASST 执行批次（plan / run / collect），不直接拼 CLI；
 - 测量与结果解析（measurement contract）；
 - 估算面积、生成 floorplan intent 与 layout delta；
 - 写 case 账本；
@@ -96,6 +98,17 @@ LLM 的职责被刻意限制为四件事：
 
 详见 [area-and-layout.md](area-and-layout.md)。
 
+## 执行层：ASST
+
+③ 工具链不直接拼 Spectre/ALPS/XA 的 CLI，而是通过 ASST 执行层：
+
+- **配置**：人用 CSV/Excel 配 PVT、参数、measure；AI 也可以通过工具生成/修改配置，但不能绕过校验；
+- **计划**：`plan_simulation_batch` 生成 run dir、netlist、命令模板、config/plan 哈希；
+- **执行**：`run_simulation_batch` 调 simulator adapter，记录 license/环境/日志/退出码；
+- **收集**：`collect_simulation_results` 解析 measure，生成 `metrics.json`、`summary.xlsx` 和 archive。
+
+AI 只调 typed tools；人保留配置面和签核；脚本保证可复现。详见 [asst-and-execution.md](asst-and-execution.md)。
+
 ## 两条回路
 
 - **内环**：单条 case 内，“提出候选 → 评估 → 测量 → 修正”。
@@ -126,8 +139,8 @@ flowchart LR
 2. 策略层调用 `propose_candidate`，给出角色级候选与理由（不写网表）。
 3. 工具链做静态检查：参数范围、角色一致性、面积估计、测试台端口、角落完整性。
 4. 晋级门决定：快路径 / 慢路径 / 两者都跑。
-5. 快路径返回 `(mu, sigma, ood)`；慢路径返回测量值与原始文件哈希。
-6. 工具链写 case 记录（含 `role_map_sha256` 与 area 报告），更新账本与代理误差模型。
+5. 快路径返回 `(mu, sigma, ood)`；慢路径通过 ASST 批次运行，返回 metrics、summary 与 plan/config 哈希。
+6. 工具链写 case 记录（含 `role_map_sha256`、area 报告与 execution 哈希），更新账本与代理误差模型。
 7. 预算控制器更新剩余预算；若触发停机条件，返回 `stop`。
 8. 策略层读取新状态，进入下一轮。
 

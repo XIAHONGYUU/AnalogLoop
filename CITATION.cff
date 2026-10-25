@@ -5,15 +5,15 @@ abstract: >-
   A design note for LLM-driven analog circuit sizing that separates a stateless
   policy layer from a deterministic toolchain, adds a declared netlist role
   manifest with a validator, a role-aware pre-layout area model with a
-  three-valued area gate, a fast surrogate verification path with an explicit
-  promotion gate, and an append-only case ledger for replay and negative
-  knowledge.
+  three-valued area gate, an ASST-style execution adapter with a plan/run/collect
+  interface, a fast surrogate verification path with an explicit promotion gate,
+  and an append-only case ledger for replay and negative knowledge.
 authors:
   - family-names: "Zuokaiyuann"
     given-names: "XIAHONGYUU"
     alias: "XIAHONGYUU"
     website: "https://github.com/XIAHONGYUU"
-version: "0.1.2"
+version: "0.1.3"
 date-released: "2026-10-25"
 license: "CC-BY-4.0"
 repository-code: "https://github.com/XIAHONGYUU/AnalogLoop"

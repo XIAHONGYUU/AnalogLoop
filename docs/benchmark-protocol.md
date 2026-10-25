@@ -106,6 +106,17 @@
 - 面积与功耗、速度一起画 Pareto，不压成加权和；
 - 面积超限的解不能进入“可行解”统计。
 
+## 执行批次
+
+ASST 的 plan / run / collect 必须产生可复现的产物：
+
+- `plan.json`：run dir、PVT/参数矩阵、config/plan 哈希；
+- `metrics.json`：固定 measure 定义的结果；
+- `summary.xlsx`：人的视图；
+- `archive/`：配置、netlist、log、退出码、哈希。
+
+Excel 不是事实来源；case 记录以 JSON/哈希为准。
+
 ## 统计
 
 - 每个配置至少 5 个随机种子；
@@ -138,6 +149,7 @@ Oracle           100        -                           -      0.00
 
 - [ ] 仿真器版本、PDK 版本、模型哈希记录在案；
 - [ ] 每个 case 有 netlist 哈希、role manifest 哈希、area 报告哈希与原始输出哈希；
+- [ ] ASST plan/config/summary/archive 哈希记录在案；
 - [ ] 面积 rule pack 版本与 area_model_sha256 记录在案；
 - [ ] 随机种子固定；
 - [ ] 代理模型版本与训练集哈希记录；

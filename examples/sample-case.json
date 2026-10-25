@@ -33,6 +33,16 @@
       "power_mw": 0.15
     },
     "ood_score": 0.04,
+    "execution": {
+      "adapter": "asst",
+      "batch_id": "B0001",
+      "plan_sha256": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "config_sha256": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "simulator": "spectre",
+      "simulator_version": "21.1",
+      "summary_path": "runs/B0001/summary.xlsx",
+      "archive_sha256": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    },
     "area": {
       "area_low_um2": 7800,
       "area_nominal_um2": 9800,

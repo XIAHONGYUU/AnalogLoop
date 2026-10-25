@@ -92,6 +92,20 @@
         "metrics": {"$ref": "#/$defs/metric_map"},
         "sigma": {"$ref": "#/$defs/metric_map"},
         "ood_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {"type": "string", "enum": ["asst", "direct", "mock"]},
+            "batch_id": {"type": "string"},
+            "plan_sha256": {"$ref": "#/$defs/hash"},
+            "config_sha256": {"$ref": "#/$defs/hash"},
+            "simulator": {"type": "string"},
+            "simulator_version": {"type": "string"},
+            "summary_path": {"type": "string"},
+            "archive_sha256": {"$ref": "#/$defs/hash"}
+          }
+        },
         "area": {
           "type": "object",
           "additionalProperties": false,

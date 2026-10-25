@@ -30,6 +30,8 @@ LLM agent 可以把“改什么、为什么改”自动化，但如果每次决�
 
 **Q6（面积）** 在固定拓扑、pre-layout 阶段，角色感知的面积模型能否给出可信的 low / nominal / high 区间，并把面积作为约束进入 sizing，而不是事后统计？
 
+**Q7（执行）** 如何把 Spectre/ALPS/XA 的 CLI 固化成 AI/人/脚本都能用的接口，使 AI 只发意图、脚本保证可复现、人保留配置与签核？
+
 ## 范围
 
 **做：**
@@ -49,7 +51,7 @@ LLM agent 可以把“改什么、为什么改”自动化，但如果每次决�
 - 流片、silicon correlation；
 - 商业 PDK / NDA 数据的处理与发布。
 
-## 五个可证伪假设
+## 六个可证伪假设
 
 **H1（契约）** 引入 typed tool contract 与仿真前检查，能显著降低非法仿真占比和无效重试。
 
@@ -61,13 +63,16 @@ LLM agent 可以把“改什么、为什么改”自动化，但如果每次决�
 
 **H5（面积）** 与“只看 W·L”相比，角色感知的面积模型能更早识别面积超限，减少后期 layout 返工和面积 surprise。
 
-五个假设分别对应五份可交付物：
+**H6（执行）** 与 AI 直接拼 CLI 相比，ASST 风格的执行适配层能降低无效调用率，并提高重放/对比的一致性。
+
+六个假设分别对应六份可交付物：
 
 - `spec/tool-contract.yaml`
 - `docs/budget-and-convergence.md`
 - `docs/memory-and-replay.md`
 - `spec/device-roles.yaml` + `spec/netlist-manifest.schema.json`
 - `docs/area-and-layout.md` + `estimate_area` 工具
+- `docs/asst-and-execution.md` + `plan/run/collect_simulation_*` 工具
 
 即使 H2 被证伪，仓库仍然有价值：它给出了一个诚实的实验记录和一套可复用的契约。
 
@@ -81,12 +86,13 @@ LLM agent 可以把“改什么、为什么改”自动化，但如果每次决�
 - 在两种 open PDK 上跑通同一套契约；
 - 非法编辑率（匹配/比例/开关）显著低于“只有名字”的基线；
 - 面积估计的 median/p95 误差、rank correlation 可报告；
+- 无效 CLI 调用率与重放一致率可报告；
 - 所有结论都能追溯到 case 记录或公开引用。
 
 ## 证据状态
 
 - **已核实**：文中引用的论文/项目标题、链接、以及它们公开摘要中的数字。
 - **作者推导**：架构、预算模型、晋级门、角色词表、指标容差建议。
-- **待验证**：95% 目标、30% 降幅、0.5% 误接受率、跨 PDK 可移植性、H4 的非法编辑率收益、H5 的面积估计收益。
+- **待验证**：95% 目标、30% 降幅、0.5% 误接受率、跨 PDK 可移植性、H4 的非法编辑率收益、H5 的面积估计收益、H6 的执行层收益。
 
 详见 [evidence-boundaries.md](evidence-boundaries.md)。

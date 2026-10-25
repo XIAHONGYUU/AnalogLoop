@@ -841,7 +841,7 @@ def area_aware_loop():
     # handoff panel
     py = 540
     s.append(rect(60, py, 1560, 160, WHITE, "#d5dde7", 1.2, 14))
-    s.append(text(90, py + 30, "handoff 到 analog2layout", 18, INK, 700))
+    s.append(text(90, py + 30, "handoff 到 layout", 18, INK, 700))
     s.append(text(90, py + 52, "角色不只用于 sizing，也用于 floorplan 约束和 layout delta。", 10.8, MUTED))
 
     hboxes = [
@@ -899,6 +899,119 @@ def area_aware_loop():
     return "".join(s)
 
 
+
+def asst_execution():
+    W, H = 1680, 940
+    s = [svg_open(W, H)]
+    s.append(header(
+        W,
+        "ASST：AI、脚本、人各做什么",
+        "AI 发意图，ASST 固化 CLI，人用 CSV/Excel 配置并签核。",
+    ))
+
+    # Human
+    s.append(rect(50, 180, 300, 200, BLUE_BG, BLUE, 1.4, 14))
+    s.append(text(70, 214, "人", 18, BLUE, 700))
+    human = ["CSV / Excel 配置", "PVT / 参数矩阵", "measure 定义", "签核 / 例外"]
+    for i, item in enumerate(human):
+        s.append(text(70, 248 + i * 28, "· " + item, 12.0, INK))
+    s.append(text(70, 366, "可手改，一键重生成", 10.5, FAINT))
+
+    # AI
+    s.append(rect(50, 420, 300, 200, GREEN_BG, GREEN, 1.4, 14))
+    s.append(text(70, 454, "AI", 18, GREEN, 700))
+    ai = ["选策略 / 提候选", "读失败 / 定下一步", "汇总 / 建议", "预算 / 角色补丁"]
+    for i, item in enumerate(ai):
+        s.append(text(70, 488 + i * 28, "· " + item, 12.0, INK))
+    s.append(text(70, 606, "只调 typed tools；不直接调 CLI", 10.5, RED))
+
+    # ASST container
+    s.append(rect(410, 180, 620, 440, AMBER_BG, AMBER, 1.5, 14))
+    s.append(text(440, 214, "ASST 执行层", 19, AMBER, 700))
+    s.append(text(440, 238, "配置 → 计划 → 执行 → 收集 → 汇总", 11.0, MUTED))
+    stages = [
+        ("validate", "CSV/Excel → schema", "配置校验"),
+        ("plan", "run dir · PVT matrix · hash", "可重放计划"),
+        ("run", "adapter · license · logs", "启动仿真"),
+        ("collect", "measure contract → metrics", "结果解析"),
+        ("summarize", "Excel · archive · compare", "汇总归档"),
+    ]
+    for i, (name, detail, zh) in enumerate(stages):
+        yy = 258 + i * 72
+        s.append(rect(440, yy, 540, 54, WHITE, AMBER, 1.2, 10))
+        s.append(text(456, yy + 22, name, 12.5, AMBER, 700, font=MONO))
+        s.append(text(456, yy + 43, detail, 10.2, INK, font=MONO))
+        s.append(text(960, yy + 34, zh, 10.8, MUTED, anchor="end"))
+        if i < len(stages) - 1:
+            s.append(arrow(710, yy + 54, 710, yy + 68, AMBER, 1.8, None, 7))
+
+    # Simulators
+    s.append(rect(1100, 180, 260, 220, PURPLE_BG, PURPLE, 1.4, 14))
+    s.append(text(1120, 214, "仿真器", 18, PURPLE, 700))
+    for i, item in enumerate(["Spectre", "ALPS", "XA"]):
+        s.append(text(1120, 250 + i * 30, item, 12.5, INK, font=MONO))
+    s.append(text(1120, 374, "命令模板由 ASST 固化", 10.2, FAINT))
+
+    # Results
+    s.append(rect(1100, 460, 260, 160, TEAL_BG, TEAL, 1.4, 14))
+    s.append(text(1120, 494, "结果", 18, TEAL, 700))
+    for i, item in enumerate(["metrics.json", "summary.xlsx", "run archive"]):
+        s.append(text(1120, 528 + i * 26, "· " + item, 11.2, INK, font=MONO))
+    s.append(text(1120, 608, "config / netlist / plan hash", 9.6, FAINT))
+
+    # Arrows
+    s.append(arrow(350, 280, 406, 280, BLUE, 2.2, None, 9))
+    s.append(text(362, 266, "配置", 10.5, FAINT))
+    s.append(arrow(350, 520, 406, 520, GREEN, 2.0, "6 5", 8))
+    s.append(text(362, 506, "tools", 10.5, FAINT))
+
+    # run -> simulators
+    s.append(poly([(980, 401), (1030, 401), (1030, 300), (1096, 300)], PURPLE, 1.9))
+    s.append(arrow(1030, 300, 1096, 300, PURPLE, 1.9, None, 8))
+    s.append(text(1034, 291, "run", 10.2, PURPLE))
+    # simulators -> collect
+    s.append(poly([(1150, 400), (1050, 400), (1050, 470), (984, 470)], PURPLE, 1.6, "5 4"))
+    s.append(arrow(1050, 470, 984, 470, PURPLE, 1.6, None, 7))
+    s.append(text(1054, 462, "results", 10.2, PURPLE))
+    # summarize -> results
+    s.append(arrow(980, 545, 1096, 545, TEAL, 2.0, None, 9))
+    s.append(text(1002, 535, "Excel", 10.5, TEAL))
+
+    # Bottom panel
+    py = 680
+    s.append(rect(60, py, 1560, 220, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(90, py + 32, "分工：AI 做什么，脚本做什么，人做什么", 19, INK, 700))
+    cols = [
+        ("人", BLUE, [
+            "定目标 / 拓扑 / 约束",
+            "PVT / 参数矩阵 / measure",
+            "审核异常，签核",
+            "接受或拒绝结果",
+        ]),
+        ("脚本（ASST）", AMBER, [
+            "校验配置，生成 run dir",
+            "设置环境/license，启动仿真",
+            "解析 measure，汇总 Excel",
+            "归档、哈希、重试、日志",
+        ]),
+        ("AI", GREEN, [
+            "选策略，提候选",
+            "读失败，定下一步",
+            "分配预算，做角色补丁",
+            "不碰 CLI，不持数值状态",
+        ]),
+    ]
+    for i, (title, color, items) in enumerate(cols):
+        cx = 90 + i * 500
+        s.append(text(cx, py + 70, title, 13.5, color, 700))
+        for j, item in enumerate(items):
+            s.append(text(cx, py + 98 + j * 24, "· " + item, 10.8, INK))
+
+    s.append(footer(W, H))
+    s.append("</svg>")
+    return "".join(s)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     PNG.mkdir(parents=True, exist_ok=True)
@@ -910,6 +1023,7 @@ def main():
         "pdk-fastpath": pdk_fastpath(),
         "netlist-semantics": netlist_semantics(),
         "area-aware-loop": area_aware_loop(),
+        "asst-execution": asst_execution(),
     }
     for name, svg in figures.items():
         path = OUT / f"{name}.svg"

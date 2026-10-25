@@ -28,12 +28,13 @@ discussion is public. This file records the publication boundary.
 - [x] `CITATION.cff` version and date match the release.
 - [x] Git history contains no secrets or large binaries.
 
-## v0.1.2 record
+## v0.1.3 record
 
 - Date: 2026-10-25
 - Published: https://github.com/XIAHONGYUU/AnalogLoop
-- Scope: architecture note, six original diagrams, tool contract, case schema,
-  netlist role manifest, role vocabulary, area model, benchmark protocol, evidence boundaries.
+- Scope: architecture note, seven original diagrams, tool contract, case schema,
+  netlist role manifest, role vocabulary, area model, ASST execution layer, benchmark protocol, evidence boundaries.
 - Added in 0.1.1: netlist semantics layer (device roles, manifest schema, example, validator).
 - Added in 0.1.2: area-aware loop (area model, area gate, layout handoff, estimate_area/export_layout_intent).
+- Added in 0.1.3: ASST execution layer (CSV/Excel config, plan/run/collect, Excel summary and archive).
 - Not included: runnable simulator loop, surrogate weights, proprietary data.

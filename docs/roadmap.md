@@ -11,7 +11,7 @@
 
 | 阶段 | 产物 | 验收标准 | 状态 |
 |---|---|---|---|
-| v0.1 架构笔记 | README、docs、6 张图、工具契约、case schema、netlist role manifest、area model、评测协议 | 链接可解析、schema 可加载、角色校验通过、图可重建 | 当前 |
+| v0.1 架构笔记 | README、docs、7 张图、工具契约、case schema、netlist role manifest、area model、ASST 执行层、评测协议 | 链接可解析、schema 可加载、角色校验通过、图可重建 | 当前 |
 | v0.2 mock 闭环 | Python 包、mock 仿真器、预算账本、重放脚本、CI | 给定种子，重放决策链一致；预算不超 | 计划 |
 | v0.3 真实 SPICE | ngspice + Sky130 两级运放、测量契约、基线 | 5 个种子跑通；报告 simulations-to-spec | 计划 |
 | v0.4 快速代理 | gm/ID 表 + 电路级 GP、晋级门、校准 | 报告 FAR、覆盖率、加速比 | 计划 |
@@ -29,6 +29,7 @@
 - case 记录 JSON Schema；
 - 语义网表：角色词表、manifest schema、示例 netlist/roles、validator；
 - 面积：角色感知模型、三值 area gate、layout handoff 文档与图；
+- ASST 执行层：配置—执行—结果汇总—归档的接口与图；
 - 评测协议；
 - 证据边界。
 
@@ -51,6 +52,7 @@
 - `analogloop.gate`：晋级门；
 - `analogloop.roles`：角色 manifest 解析与校验；
 - `analogloop.area`：预布局面积估计（core / ring / routing / dummy / periphery）；
+- `analogloop.asst`：ASST 风格的 plan/run/collect 适配层（mock 后端）；
 - `analogloop.layout_intent`：floorplan intent 与 layout delta 的接口；
 - `analogloop.ledger`：append-only JSONL + 哈希链；
 - `analogloop.replay`：重放；
@@ -63,6 +65,7 @@
 - 篡改账本会被哈希链检测；
 - 角色违规（匹配、比例、开关）在仿真前被拒绝；
 - 面积超限在仿真前被 area gate 拒绝；
+- ASST plan 的 config/plan 哈希可重放；
 - 单元测试覆盖预算、门、角色、账本。
 
 ## v0.3：真实 SPICE
@@ -81,6 +84,7 @@
 - 5 个种子跑通；
 - 角色 manifest 通过校验；
 - 面积报告包含 low/nominal/high 与 by_role；
+- ASST config、plan、metrics、summary 可追溯；
 - 每个指标可追溯到 raw 文件与哈希；
 - 报告包含失败案例与删失样本；
 - 重放最优 case 一致。

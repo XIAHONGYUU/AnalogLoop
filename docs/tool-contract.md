@@ -26,7 +26,10 @@
 | `propose_candidate` | 提出候选与理由 | 0 | 写草稿 | 参数必须在范围内 |
 | `check_feasibility` | 静态/解析可行性预检 | 低 | 读 | 不调用 SPICE |
 | `evaluate_fast` | 快速代理评估 | 快 | 写缓存 | 必须返回 sigma / OOD |
-| `simulate_spice` | 真实 SPICE | 高 | 写原始文件 | 需要预算授权 |
+| `simulate_spice` | 真实 SPICE（单次） | 高 | 写原始文件 | 需要预算授权 |
+| `plan_simulation_batch` | 配置 → 可重放 plan | 低 | 写 | 记录 config/plan 哈希 |
+| `run_simulation_batch` | 执行 ASST 批次 | 高 | 写 + 外部进程 | 需要预算/许可证 |
+| `collect_simulation_results` | 解析 measure / 汇总 | 低 | 写 | 生成 summary + archive |
 | `estimate_area` | 估算 pre-layout 面积 | 低 | 写 | 返回 low/nominal/high + by_role |
 | `export_layout_intent` | 输出 floorplan / delta | 低 | 写 | 依赖 role manifest |
 | `measure` | 按契约测量指标 | 低 | 写 | 指标定义版本化 |
@@ -126,6 +129,23 @@
 5. 只有校验通过，才允许 `simulate_spice`。
 
 失败时返回 typed 错误（`ROLE_NOT_TUNABLE`、`VALIDATION_FAILED`），并写进 case 记录。这样“AI 改了网表”永远是一条可审计的角色级补丁，而不是一段无法解释的文本 diff。
+
+## ASST 执行批次
+
+ASST 把 CLI 固化成一个批次接口：
+
+```text
+CSV/Excel 配置
+  -> plan_simulation_batch（run dir / plan hash）
+  -> run_simulation_batch（Spectre / ALPS / XA adapter）
+  -> collect_simulation_results（metrics.json / summary.xlsx / archive）
+```
+
+- AI 只调用这三个工具，不拼 CLI；
+- 人保留 CSV/Excel 配置面；
+- case 记录写 `execution.adapter=asst`、plan/config/summary/archive 哈希；
+- 失败可 resume，重试有上限；
+- Excel 是人的视图，`metrics.json` 是 agent 的视图。
 
 ## 面积门
 

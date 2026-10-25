@@ -56,6 +56,14 @@ corners:
   - {process: ss, temperature_c: 125, supply_v: 1.62}
   - {process: ff, temperature_c: -40, supply_v: 1.98}
 
+execution:
+  adapter: asst
+  simulators: [spectre, alps, xa]
+  config: config.csv
+  summary: summary.xlsx
+  public_demo_simulator: ngspice
+  note: "ASST is the author's prior workflow; not bundled in this repo."
+
 area:
   budget_mm2: 0.02
   guardband_pct: 10

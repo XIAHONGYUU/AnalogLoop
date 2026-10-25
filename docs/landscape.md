@@ -18,6 +18,7 @@
 | 网表语义 | [Analog-DB](https://arxiv.org/abs/2609.01286)（2026） | 功能子块/尺寸命名参数 + 匹配约束；agent-first | 最接近“语义层”，以数据库/DSL 为中心 |
 | 网表语义 | [AMSnet-q](https://arxiv.org/abs/2605.01404)（2026） | 原理图→网表 + 自动功能标注 + 仿真验证 | 自动标注参照 |
 | 布局 / 面积 | ALIGN / BAG / MAGICAL 等 | 网表/约束 → 版图；面积、匹配、对称是布局输入 | 布局阶段参照；本仓库只做 pre-layout 面积约束 |
+| 执行 / CLI | ASST（作者此前工作） | Spectre/ALPS/XA、CSV/Excel、PVT/参数、measure 汇总、Excel 归档 | 执行层参照；代码不在本仓库 |
 | RL sizing | [AutoCkt](https://github.com/BWRC-AMS-ML-Discovery/AutoCkt)（DATE 2020） | ngspice、RL、仿真效率基线 | 经典基线 |
 | 鲁棒 RL | [RoSE-Opt](https://arxiv.org/abs/2407.19150)（2024-07） | 知识注入 RL、鲁棒优化 | 优化器参照 |
 | 代理仿真 | [LASANA](https://arxiv.org/abs/2507.10748)（MLCAD 2025） | ML 代理替代子块仿真；3 个数量级加速；误差 < 7–8% | “95% 量级”可行性的证据 |
@@ -44,7 +45,8 @@
 - gm/ID 表与开源 PDK 流程；
 - 工具调用与 MCP 化；
 - 网表功能块的自动标注（GANA、AMSnet-q、AgenticSizing）；
-- 布局自动化与面积估计（ALIGN、BAG、MAGICAL 等）。
+- 布局自动化与面积估计（ALIGN、BAG、MAGICAL 等）；
+- 仿真器 CLI 封装与 Excel 结果汇总（ASST 等）。
 
 ### 没有被充分覆盖的
 
@@ -66,6 +68,7 @@
 - 把设计意图做成 `roles.yaml` sidecar + validator + role-aware tools；
 - 把 `role_map_sha256` 写进 case 记录；
 - 把面积做成角色感知、带 low/high 区间、进入 Pareto 的闭环约束；
+- 把 ASST 风格的执行层写成 plan/run/collect 契约；
 - 用 MCU 类比降低沟通成本。
 
 ## 引用说明

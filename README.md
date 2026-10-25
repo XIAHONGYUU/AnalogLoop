@@ -100,12 +100,26 @@ else:                        UNCERTAIN -> refine / layout check
 
 详见 [docs/area-and-layout.md](docs/area-and-layout.md)，图见 [diagrams/png/area-aware-loop.png](diagrams/png/area-aware-loop.png)。
 
-## 四条设计原则
+## 执行层：ASST 与 CLI 固化
+
+AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂移、结果会散落。ASST 用脚本把 CLI 固化：
+
+- **人**：CSV/Excel 配置 PVT、参数、measure；
+- **ASST**：validate → plan → run → collect → summarize；
+- **AI**：调 typed tools，不碰 CLI；
+- **输出**：run dir、`metrics.json`、`summary.xlsx`、archive。
+
+分工：**AI 决定“跑什么”，ASST 决定“怎么跑”，人决定“为什么跑、是否接受”。**
+
+详见 [docs/asst-and-execution.md](docs/asst-and-execution.md)，图见 [diagrams/png/asst-execution.png](diagrams/png/asst-execution.png)。
+
+## 五条设计原则
 
 1. **无状态的大脑，有状态的实验台。** LLM 不记住“上次跑到第几个点”；所有数值、版本、候选都在账本里。
 2. **仿真预算是一等公民。** 每个决策都要能回答：这次评估花多少、预期换回多少信息、什么时候停止。
 3. **一切可重放。** 网表、模型、种子、工具版本、代理版本都有哈希；给定账本，可以重放出一条相同的决策链。
 4. **设计意图显式化。** 器件的角色、匹配、比例、可调性写进 manifest；名字只是提示，validator 是仲裁。
+5. **执行层固化。** AI 不直接拼 CLI；ASST 负责可复现执行，人保留 CSV/Excel 配置与签核。
 
 ## 两条快速验证路线
 
@@ -148,11 +162,12 @@ else:                        UNCERTAIN -> refine / layout check
 
 | 文件 | 内容 |
 |---|---|
-| [docs/research-question.md](docs/research-question.md) | 问题、范围、五个可证伪假设 |
+| [docs/research-question.md](docs/research-question.md) | 问题、范围、六个可证伪假设 |
 | [docs/architecture.md](docs/architecture.md) | 五段架构、两条回路、失败模式 |
 | [docs/fast-verification.md](docs/fast-verification.md) | 两层验证、晋级门、95% 的度量 |
 | [docs/netlist-semantics.md](docs/netlist-semantics.md) | 网表角色、manifest、validator |
 | [docs/area-and-layout.md](docs/area-and-layout.md) | 面积模型、area gate、layout handoff |
+| [docs/asst-and-execution.md](docs/asst-and-execution.md) | ASST 执行层、CLI 固化、AI/脚本/人分工 |
 | [docs/gm-id-and-pdk-database.md](docs/gm-id-and-pdk-database.md) | gm/ID 与学习型 PDK 数据库 |
 | [docs/mcu-analogy.md](docs/mcu-analogy.md) | ISA、中断、存储层次 |
 | [docs/tool-contract.md](docs/tool-contract.md) | 工具白名单与调用契约 |
@@ -164,7 +179,6 @@ else:                        UNCERTAIN -> refine / layout check
 | [spec/tool-contract.yaml](spec/tool-contract.yaml) | 机器可读的工具契约 |
 | [spec/case-record.schema.json](spec/case-record.schema.json) | case 账本 schema |
 | [spec/device-roles.yaml](spec/device-roles.yaml) | 角色词表 |
-| [spec/role-mapping.yaml](spec/role-mapping.yaml) | 与 analog2layout 的词表对齐 |
 | [spec/netlist-manifest.schema.json](spec/netlist-manifest.schema.json) | 角色 manifest schema |
 | [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml) | 两级运放角色标注示例 |
 
@@ -178,8 +192,8 @@ else:                        UNCERTAIN -> refine / layout check
 
 ## 路线图
 
-- **v0.1（当前）**：架构笔记、六张原创图、工具契约、语义网表、面积模型、评测协议。
-- **v0.2**：mock 闭环（不接仿真器）+ 预算账本 + 角色 manifest/validator + 面积估计 + 重放脚本 + CI。
+- **v0.1（当前）**：架构笔记、七张原创图、工具契约、语义网表、面积模型、ASST 执行层、评测协议。
+- **v0.2**：mock 闭环（不接仿真器）+ 预算账本 + 角色 manifest/validator + 面积估计 + ASST 风格执行适配层 + 重放脚本 + CI。
 - **v0.3**：ngspice + Sky130 两级运放 demo，比较 grid / DoE+BO / LLM 策略。
 - **v0.4**：快速代理 + 晋级门，报告误接受率。
 - **v1.0**：Quarto/Pages 报告 + 可复现实验。
