@@ -24,12 +24,12 @@ additional slogans.
 
 ## Local checks
 
-~~~bash
+```bash
 python3 -m venv .venv
 .venv/bin/pip install cairosvg pyyaml jsonschema
 .venv/bin/python scripts/build_diagrams.py
 .venv/bin/python scripts/validate.py
-~~~
+```
 
 ## Discuss
 

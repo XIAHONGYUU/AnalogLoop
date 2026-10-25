@@ -102,7 +102,7 @@
 
 ## 报告模板
 
-~~~text
+```text
 Circuit: two-stage-opamp-v1
 PDK: sky130A
 Corners: TT/SS/FF x -40/27/125C
@@ -116,7 +116,7 @@ DoE + BO          0.60      28 / 47                      -      0.00
 Ours (no gate)    0.60      18 / 35                      0.061   0.94
 Ours (gate)       0.60      22 / 38                      0.004   0.91
 Oracle           100        -                           -      0.00
-~~~
+```
 
 上面的数字是模板占位，不是实验结果。
 

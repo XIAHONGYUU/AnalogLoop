@@ -80,7 +80,7 @@ gm/ID 把 MOS 的偏置状态压到一个无量纲坐标：
 
 一个 AI/工具友好的器件库，至少要有：
 
-~~~yaml
+```yaml
 device: sky130_fd_pr__nfet_01v8
 corner: tt
 temperature_k: 300
@@ -91,7 +91,7 @@ cap: {cgg_f: 8.0e-15, cgd_f: 1.2e-15, cdb_f: 0.9e-15}
 noise: {thermal_a2_hz: 1.0e-22, flicker_a2_hz_at_1hz: 3.0e-21}
 mismatch: {avt_mv_um: 5.0, abeta_pct_um: 1.0}
 provenance: {simulator: ngspice-44, model: sky130_tt, netlist_sha256: "..."}
-~~~
+```
 
 关键不是字段多，而是：
 
@@ -106,7 +106,7 @@ provenance: {simulator: ngspice-44, model: sky130_tt, netlist_sha256: "..."}
 
 如果做 L2 代理，输入是 sizing 向量 + 角落 + 温度，输出是指标分布：
 
-~~~yaml
+```yaml
 topology: two-stage-opamp-v1
 sizing: {w1_um: 20, l1_um: 0.5, w5_um: 40, ...}
 corner: ss
@@ -118,7 +118,7 @@ prediction:
   power_mw: {mu: 4.8, sigma: 0.15}
 ood_score: 0.07
 provenance: {model_sha256: "...", train_set_sha256: "..."}
-~~~
+```
 
 ### 3.4 优点
 
@@ -167,11 +167,11 @@ provenance: {model_sha256: "...", train_set_sha256: "..."}
 - 数据存成列式格式（Parquet/Arrow），按器件、角落、几何分区；
 - 暴露 typed query API，例如：
 
-~~~text
+```text
 device.op_at(gm_id=12, L=0.5, Vds=0.6, corner="ss", T=125)
 device.iv_sweep(vgs=[0.4..0.9], vds=0.6, W=10, L=0.5)
 predict.topology("two-stage-opamp-v1", sizing, corner="ff")
-~~~
+```
 
 - LLM 只看到“查询结果 + 不确定度 + 版本”，不看到整张表；
 - 所有查询走工具契约，可缓存、可限流、可审计。

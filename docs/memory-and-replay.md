@@ -54,14 +54,14 @@
 
 负知识记录建议包含：
 
-~~~yaml
+```yaml
 negative:
   claim: "W1 > 40um at L=0.5um drives M1 into triode at ss/125C"
   evidence_case_ids: ["case-000123", "case-000124"]
   scope: {topology: "two-stage-opamp-v1", corner: "ss", temp_c: 125}
   confidence: "medium"
   reviewed_by: "human"
-~~~
+```
 
 负知识必须是**有范围的**，不能写成“这个拓扑不行”。
 
@@ -101,9 +101,9 @@ negative:
 
 ### 重放命令（计划）
 
-~~~bash
+```bash
 python -m analogloop.replay --ledger cases/2026-10-25.jsonl --until case-000123
-~~~
+```
 
 输出：每个 case 的决策、预算消耗、最终指标、与原始记录的差异。
 
@@ -111,13 +111,13 @@ python -m analogloop.replay --ledger cases/2026-10-25.jsonl --until case-000123
 
 不要让 LLM 读全量账本。提供聚合查询：
 
-~~~text
+```text
 best_case(spec_id, corner="ss", feasible=true)
 recent_failures(spec_id, limit=5)
 similar_cases(spec_id, params, k=10)
 negative_knowledge(topology, corner)
 budget_summary(spec_id)
-~~~
+```
 
 返回值带 `provenance` 与 `confidence`，LLM 只看到摘要。
 

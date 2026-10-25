@@ -80,13 +80,13 @@
 
 规则示例：
 
-~~~text
+```text
 if ood_score > ood_threshold:            -> SPICE
 elif sigma * k > margin:                 -> SPICE
 elif criticality == "signoff":           -> SPICE
 elif budget_spice_remaining > reserve:   -> SPICE (stratified sample)
 else:                                    -> accept (fast)
-~~~
+```
 
 两个细节：
 
@@ -127,9 +127,9 @@ else:                                    -> accept (fast)
 
 不要只存一个全局 RMSE。按指标、角落、区域存残差分布：
 
-~~~text
+```text
 error[metric][corner][region] = {median, p95, max, n}
-~~~
+```
 
 这个误差模型反过来喂给晋级门：sigma 不是模型自带的自信，而是**历史残差**。
 

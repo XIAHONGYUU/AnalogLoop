@@ -33,7 +33,7 @@
 
 所有工具调用使用同一个外层结构：
 
-~~~json
+```json
 {
   "action": "simulate_spice",
   "request_id": "req-20261025-0042",
@@ -47,7 +47,7 @@
   "budget": { "max_spice": 1 },
   "rationale": "PM margin is small; verify at worst-case corner."
 }
-~~~
+```
 
 执行层必须：
 
@@ -59,7 +59,7 @@
 
 ## 结果结构
 
-~~~json
+```json
 {
   "request_id": "req-20261025-0042",
   "status": "ok",
@@ -77,11 +77,11 @@
   },
   "warnings": ["PM below target by 1.3 deg"]
 }
-~~~
+```
 
 错误也必须是 typed：
 
-~~~json
+```json
 {
   "request_id": "req-20261025-0043",
   "status": "error",
@@ -92,7 +92,7 @@
     "suggested_action": "reduce initial guess step or check bias"
   }
 }
-~~~
+```
 
 ## 停机条件
 

@@ -22,12 +22,12 @@
 
 权重可以配置，例如：
 
-~~~yaml
+```yaml
 cost_weights:
   fast_call: 1
   spice_call: 1000
   human_minute: 60000
-~~~
+```
 
 这样“1 次 SPICE ≈ 1000 次快评估”的直觉可以直接进入评分函数。
 
@@ -35,7 +35,7 @@ cost_weights:
 
 每条 case 至少记录：
 
-~~~yaml
+```yaml
 case_id: "case-000123"
 created_at: "2026-10-25T12:00:00+08:00"
 spec_id: "spec-two-stage-opamp-v1"
@@ -61,7 +61,7 @@ provenance:
   tool_version: "0.1.3"
   simulator: null
   netlist_sha256: null
-~~~
+```
 
 ## 分配策略
 
@@ -99,12 +99,12 @@ provenance:
 
 PVT 角落不能被“平均掉”。建议给每个角落设最低配额：
 
-~~~yaml
+```yaml
 corner_quota:
   tt: 0.4
   ss: 0.3
   ff: 0.3
-~~~
+```
 
 最差角落决定成败，配额应该向最差角落倾斜。
 
@@ -112,7 +112,7 @@ corner_quota:
 
 建议实现为可组合的谓词：
 
-~~~text
+```text
 stop if SPEC_MET and margin >= margin_target
 stop if budget_remaining <= 0
 stop if iter >= max_iter
@@ -121,7 +121,7 @@ stop if infeasible_proven
 stop if ood_ratio > ood_limit
 stop if sim_failures > failure_limit
 stop if human_stop
-~~~
+```
 
 每个条件都要在 case 记录里留下证据。不要用“LLM 说可以停了”作为唯一条件。
 
