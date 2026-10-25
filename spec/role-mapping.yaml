@@ -1,0 +1,150 @@
+# Mapping between AnalogLoop canonical roles and the companion
+# analog2layout prototype (roles.py / area.py / floorplan.py / delta.py).
+#
+# Canonical role ids are defined in spec/device-roles.yaml. The companion
+# prototype uses a few different ids and has a smaller vocabulary; this file
+# makes the mismatch explicit instead of hiding it in code.
+
+schema: analogloop/role-mapping
+version: "0.1.0"
+status: draft
+updated: "2026-10-25"
+canonical: spec/device-roles.yaml
+companion: "analog2layout prototype (roles.py / area.py / floorplan.py / delta.py)"
+
+notes:
+  - "a2l_role is the id used by the companion prototype; null means no direct equivalent."
+  - "critical / needs_dummy / needs_isolation are consumed by the area model."
+  - "The canonical manifest is roles.yaml; inline role= annotations are an export format for tools that do not read the manifest."
+
+mappings:
+  input_pair:
+    aliases: [input_pair, dp]
+    a2l_role: input_pair
+    critical: true
+    needs_dummy: true
+    needs_isolation: true
+
+  tail_source:
+    aliases: [tail_source, tail_current, tail]
+    a2l_role: tail_current
+    critical: true
+    needs_dummy: true
+    needs_isolation: true
+
+  active_load:
+    aliases: [active_load, load]
+    a2l_role: null
+    critical: true
+    needs_dummy: true
+    needs_isolation: true
+    note: "The companion prototype folds this into bias/current_mirror; extend before integration."
+
+  current_mirror:
+    aliases: [current_mirror, mirror, mir]
+    a2l_role: current_mirror
+    critical: true
+    needs_dummy: true
+    needs_isolation: true
+
+  cascode:
+    aliases: [cascode, cas]
+    a2l_role: cascode
+    critical: true
+    needs_dummy: true
+    needs_isolation: true
+
+  output_stage:
+    aliases: [output_stage, out]
+    a2l_role: output_stage
+    critical: false
+    needs_dummy: true
+    needs_isolation: false
+
+  bias_reference:
+    aliases: [bias_reference, bias, ibias]
+    a2l_role: bias
+    critical: false
+    needs_dummy: false
+    needs_isolation: false
+
+  enable_switch:
+    aliases: [enable_switch, enable, en]
+    a2l_role: enable_switch
+    critical: false
+    needs_dummy: true
+    needs_isolation: false
+
+  adj_switch:
+    aliases: [adj_switch, adj, trim]
+    a2l_role: adj_switch
+    critical: false
+    needs_dummy: true
+    needs_isolation: false
+
+  dummy:
+    aliases: [dummy, dum]
+    a2l_role: dummy
+    critical: false
+    needs_dummy: false
+    needs_isolation: false
+
+  compensation_cap:
+    aliases: [compensation_cap, compensation, cc]
+    a2l_role: compensation
+    critical: true
+    needs_dummy: false
+    needs_isolation: false
+
+  nulling_resistor:
+    aliases: [nulling_resistor, rz, nulling]
+    a2l_role: null
+    critical: true
+    needs_dummy: false
+    needs_isolation: false
+    note: "No direct role in the companion prototype yet."
+
+  load_cap:
+    aliases: [load_cap, cload, cl]
+    a2l_role: null
+    critical: false
+    needs_dummy: false
+    needs_isolation: false
+    note: "Testbench element; usually outside the layout handoff."
+
+  sense:
+    aliases: [sense, sns]
+    a2l_role: sense
+    critical: true
+    needs_dummy: true
+    needs_isolation: true
+
+  esd:
+    aliases: [esd]
+    a2l_role: esd
+    critical: false
+    needs_dummy: false
+    needs_isolation: false
+
+  decap:
+    aliases: [decap, dec]
+    a2l_role: decap
+    critical: false
+    needs_dummy: false
+    needs_isolation: false
+
+  startup:
+    aliases: [startup, start]
+    a2l_role: null
+    critical: false
+    needs_dummy: false
+    needs_isolation: false
+    note: "No direct role in the companion prototype yet."
+
+  protection:
+    aliases: [protection, clamp]
+    a2l_role: null
+    critical: false
+    needs_dummy: false
+    needs_isolation: false
+    note: "No direct role in the companion prototype yet."

@@ -17,6 +17,7 @@
 | 网表语义 | [GANA](http://ece.umn.edu/users/sachin/conf/date20.pdf)（DATE 2020） | GCN 自动标注功能块 | 自动推断路线；本仓库用声明 + 校验 |
 | 网表语义 | [Analog-DB](https://arxiv.org/abs/2609.01286)（2026） | 功能子块/尺寸命名参数 + 匹配约束；agent-first | 最接近“语义层”，以数据库/DSL 为中心 |
 | 网表语义 | [AMSnet-q](https://arxiv.org/abs/2605.01404)（2026） | 原理图→网表 + 自动功能标注 + 仿真验证 | 自动标注参照 |
+| 布局 / 面积 | ALIGN / BAG / MAGICAL 等 | 网表/约束 → 版图；面积、匹配、对称是布局输入 | 布局阶段参照；本仓库只做 pre-layout 面积约束 |
 | RL sizing | [AutoCkt](https://github.com/BWRC-AMS-ML-Discovery/AutoCkt)（DATE 2020） | ngspice、RL、仿真效率基线 | 经典基线 |
 | 鲁棒 RL | [RoSE-Opt](https://arxiv.org/abs/2407.19150)（2024-07） | 知识注入 RL、鲁棒优化 | 优化器参照 |
 | 代理仿真 | [LASANA](https://arxiv.org/abs/2507.10748)（MLCAD 2025） | ML 代理替代子块仿真；3 个数量级加速；误差 < 7–8% | “95% 量级”可行性的证据 |
@@ -42,7 +43,8 @@
 - BO / RL / 代理模型做 sizing；
 - gm/ID 表与开源 PDK 流程；
 - 工具调用与 MCP 化；
-- 网表功能块的自动标注（GANA、AMSnet-q、AgenticSizing）。
+- 网表功能块的自动标注（GANA、AMSnet-q、AgenticSizing）；
+- 布局自动化与面积估计（ALIGN、BAG、MAGICAL 等）。
 
 ### 没有被充分覆盖的
 
@@ -52,6 +54,7 @@
 4. **负知识**：记忆系统多存成功案例；失败原因很少被结构化。
 5. **MCU 叙事**：没有看到用 MCU 分工来组织整个架构的公开项目。
 6. **声明式、可校验、工具原生的角色层**：自动标注已有，但把角色作为设计师声明、用 sidecar + validator 约束 agent 修改，仍然少见。
+7. **面积作为 sizing 闭环约束**：面积估计通常属于 layout 阶段；把它做成角色感知、带区间、进入 Pareto 的闭环约束，仍然少见。
 
 ### 本仓库的增量
 
@@ -62,6 +65,7 @@
 - 把误接受率、校准、信任域写成评测协议；
 - 把设计意图做成 `roles.yaml` sidecar + validator + role-aware tools；
 - 把 `role_map_sha256` 写进 case 记录；
+- 把面积做成角色感知、带 low/high 区间、进入 Pareto 的闭环约束；
 - 用 MCU 类比降低沟通成本。
 
 ## 引用说明

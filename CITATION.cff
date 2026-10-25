@@ -4,7 +4,8 @@ title: "AnalogLoop: A Two-Speed, Budget-Aware Agent Architecture for Analog Circ
 abstract: >-
   A design note for LLM-driven analog circuit sizing that separates a stateless
   policy layer from a deterministic toolchain, adds a declared netlist role
-  manifest with a validator, a fast surrogate verification path with an explicit
+  manifest with a validator, a role-aware pre-layout area model with a
+  three-valued area gate, a fast surrogate verification path with an explicit
   promotion gate, and an append-only case ledger for replay and negative
   knowledge.
 authors:
@@ -12,7 +13,7 @@ authors:
     given-names: "XIAHONGYUU"
     alias: "XIAHONGYUU"
     website: "https://github.com/XIAHONGYUU"
-version: "0.1.1"
+version: "0.1.2"
 date-released: "2026-10-25"
 license: "CC-BY-4.0"
 repository-code: "https://github.com/XIAHONGYUU/AnalogLoop"

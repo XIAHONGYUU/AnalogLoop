@@ -18,7 +18,7 @@
 |---|---|---|
 | `fast_call` | 一次代理评估 | ms–s |
 | `spice_call` | 一次 SPICE（按分析/角落加权） | s–min |
-| `human_minute` | 人工审核/签核 | min–hour |
+| `human_minute` | 人工审核/签核、面积 uncertain 时的 layout review | min–hour |
 
 权重可以配置，例如：
 

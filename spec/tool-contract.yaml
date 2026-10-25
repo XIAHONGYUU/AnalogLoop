@@ -317,6 +317,51 @@ tools:
         warnings: {type: array, items: {type: string}}
     errors: [UNKNOWN_RAW, UNKNOWN_METRIC]
 
+  - name: estimate_area
+    summary: Estimate pre-layout area from the annotated netlist and a versioned rule pack.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [candidate_id]
+      properties:
+        candidate_id: {type: string}
+        rule_pack: {type: string}
+    output:
+      type: object
+      required: [area_low_um2, area_nominal_um2, area_high_um2, by_role, rules]
+      properties:
+        area_low_um2: {type: number}
+        area_nominal_um2: {type: number}
+        area_high_um2: {type: number}
+        by_role: {type: object, additionalProperties: {type: number}}
+        rules: {type: object}
+        warnings:
+          type: array
+          items: {type: string}
+        area_model_sha256: {type: string}
+    errors: [UNKNOWN_CANDIDATE, RULE_PACK_MISSING, AREA_MODEL_ERROR]
+
+  - name: export_layout_intent
+    summary: Export a white-line floorplan and layout delta manifest for review.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [candidate_id]
+      properties:
+        candidate_id: {type: string}
+    output:
+      type: object
+      required: [floorplan_sha256, delta_sha256]
+      properties:
+        floorplan_sha256: {type: string}
+        delta_sha256: {type: string}
+        area_report_sha256: {type: string}
+    errors: [UNKNOWN_CANDIDATE, LAYOUT_INTENT_ERROR]
+
   - name: commit_case
     summary: Append one immutable case record to the ledger.
     cost: {unit: none, amount: 0}

@@ -33,6 +33,21 @@
       "power_mw": 0.15
     },
     "ood_score": 0.04,
+    "area": {
+      "area_low_um2": 7800,
+      "area_nominal_um2": 9800,
+      "area_high_um2": 13200,
+      "by_role_um2": {
+        "input_pair": 3200,
+        "output_stage": 2800,
+        "compensation_cap": 1500,
+        "current_mirror": 1200,
+        "other": 1100
+      },
+      "rules_name": "generic-180",
+      "rules_confidence": "educational",
+      "area_model_sha256": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    },
     "spice": {
       "simulator": "ngspice",
       "simulator_version": "44.2",

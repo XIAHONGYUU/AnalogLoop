@@ -27,6 +27,8 @@
 | `check_feasibility` | 静态/解析可行性预检 | 低 | 读 | 不调用 SPICE |
 | `evaluate_fast` | 快速代理评估 | 快 | 写缓存 | 必须返回 sigma / OOD |
 | `simulate_spice` | 真实 SPICE | 高 | 写原始文件 | 需要预算授权 |
+| `estimate_area` | 估算 pre-layout 面积 | 低 | 写 | 返回 low/nominal/high + by_role |
+| `export_layout_intent` | 输出 floorplan / delta | 低 | 写 | 依赖 role manifest |
 | `measure` | 按契约测量指标 | 低 | 写 | 指标定义版本化 |
 | `commit_case` | 写 case 账本 | 低 | 追加 | 不可修改历史 |
 | `query_memory` | 查询历史/技能 | 低 | 读 | 返回带 provenance |
@@ -124,6 +126,28 @@
 5. 只有校验通过，才允许 `simulate_spice`。
 
 失败时返回 typed 错误（`ROLE_NOT_TUNABLE`、`VALIDATION_FAILED`），并写进 case 记录。这样“AI 改了网表”永远是一条可审计的角色级补丁，而不是一段无法解释的文本 diff。
+
+## 面积门
+
+面积不是“nominal ≤ budget”的二值判断，而是带区间的三值判断：
+
+```text
+if area_high <= budget:      PASS
+elif area_low > budget:      REJECT
+else:                        UNCERTAIN
+```
+
+- `PASS`：可以进入 SPICE 确认；
+- `REJECT`：确定超面积，不花 SPICE；
+- `UNCERTAIN`：要求更准的 rule pack / 校准，或让 layout 做快速 floorplan。
+
+优化时建议留 guardband：
+
+```text
+area_target = area_budget / (1 + area_guardband)
+```
+
+面积与功耗、速度一起进入 Pareto；不要把它压成一个加权和。
 
 ## 停机条件
 

@@ -177,6 +177,23 @@ roles:
     metrics: [trim_range, leakage]
     notes: "Discrete trim/configuration; its state is part of the candidate, not a continuous size."
 
+  - id: sense
+    label: "检测/采样"
+    category: sensing
+    aliases: [MSNS, SNS, SENSE]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: required
+    tunable: true
+    criticality: high
+    constraints:
+      - matched_sense
+      - low_parasitic
+    allowed_actions: [resize, set_bias]
+    forbidden_actions: [delete, single_side_resize]
+    metrics: [gain, offset, noise]
+    notes: "Current/voltage sense device; small parasitics can corrupt the measurement."
+
   - id: dummy
     label: "dummy 管"
     category: matching

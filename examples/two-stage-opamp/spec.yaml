@@ -36,6 +36,10 @@ metrics:
   offset_mv:
     max: 5
     weight: 0.5
+  area_mm2:
+    max: 0.02
+    weight: 1.0
+    guardband_pct: 10
 
 variables:
   - {name: w1_um, min: 5, max: 50, step: 1}
@@ -51,6 +55,12 @@ corners:
   - {process: tt, temperature_c: 27, supply_v: 1.8}
   - {process: ss, temperature_c: 125, supply_v: 1.62}
   - {process: ff, temperature_c: -40, supply_v: 1.98}
+
+area:
+  budget_mm2: 0.02
+  guardband_pct: 10
+  rule_pack: generic-180
+  note: "Educational rule pack, not a PDK. Calibrate before signoff."
 
 budget:
   fast_calls: 2000

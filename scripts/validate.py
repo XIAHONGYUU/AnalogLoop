@@ -59,7 +59,7 @@ def load_json(rel: str):
 
 
 def check_yaml_files() -> None:
-    for rel in ["spec/tool-contract.yaml", "examples/two-stage-opamp/spec.yaml", "CITATION.cff"]:
+    for rel in ["spec/tool-contract.yaml", "spec/role-mapping.yaml", "examples/two-stage-opamp/spec.yaml", "CITATION.cff"]:
         data = load_yaml(rel)
         if rel == "spec/tool-contract.yaml" and isinstance(data, dict):
             for key in ["contract", "version", "tools", "stop_conditions"]:
@@ -204,6 +204,15 @@ def check_semantics() -> None:
         return
     ok(f"device role vocabulary has {len(role_ids)} roles")
 
+    mapping_doc = load_yaml("spec/role-mapping.yaml")
+    if mapping_doc:
+        mappings = mapping_doc.get("mappings", {})
+        missing = role_ids - set(mappings)
+        if missing:
+            fail(f"role mapping missing canonical roles: {sorted(missing)}")
+        else:
+            ok(f"role mapping covers {len(mappings)} canonical roles")
+
     try:
         Draft202012Validator.check_schema(schema)
         validator = Draft202012Validator(schema)
@@ -314,7 +323,7 @@ def check_semantics() -> None:
 
 
 def check_assets() -> None:
-    for name in ["architecture", "fast-verification", "mcu-mapping", "pdk-fastpath", "netlist-semantics"]:
+    for name in ["architecture", "fast-verification", "mcu-mapping", "pdk-fastpath", "netlist-semantics", "area-aware-loop"]:
         for rel in [f"diagrams/{name}.svg", f"diagrams/png/{name}.png"]:
             path = ROOT / rel
             if not path.exists():

@@ -34,10 +34,12 @@ CPU 的指令集是软件与硬件之间的契约：有限、typed、可验证�
 - `validate_roles`：校验角色声明与拓扑；
 - `apply_role_patch`：角色级修改；
 - `evaluate_fast`：请求快速评估；
+- `estimate_area`：估算 pre-layout 面积；
 - `simulate_spice`：请求真值；
 - `measure`：按固定定义读取指标；
 - `commit_case`：写账本；
 - `query_memory`：查询历史；
+- `export_layout_intent`：输出 floorplan / delta；
 - `stop`：结束并给出理由。
 
 完整定义见 [tool-contract.md](tool-contract.md) 与 [../spec/tool-contract.yaml](../spec/tool-contract.yaml)。

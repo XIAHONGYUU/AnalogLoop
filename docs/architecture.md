@@ -15,8 +15,8 @@
 
 输入不是一句自然语言，而是一份可检查的 spec：
 
-- 设计目标：Gain、UGB、PM、Power、Noise、Offset、Slew Rate 等；
-- 约束：电源、负载、面积、摆幅、输入共模；
+- 设计目标：Gain、UGB、PM、Power、Area、Noise、Offset、Slew Rate 等；
+- 约束：电源、负载、面积（budget + guardband）、摆幅、输入共模；
 - 参数空间：可调变量、范围、步进、整数/离散约束；
 - PVT：角落、温度、电源容差；
 - **可行性预检**：用设计方程或 gm/ID 粗算，先判断 spec 是否落在可实现区间。
@@ -43,6 +43,7 @@ LLM 的职责被刻意限制为四件事：
 - 调用快速代理；
 - 运行 SPICE（通过适配器）；
 - 测量与结果解析（measurement contract）；
+- 估算面积、生成 floorplan intent 与 layout delta；
 - 写 case 账本；
 - 生成报告与图。
 
@@ -83,6 +84,18 @@ LLM 的职责被刻意限制为四件事：
 
 详见 [netlist-semantics.md](netlist-semantics.md)，词表在 [../spec/device-roles.yaml](../spec/device-roles.yaml)，例子在 [../examples/two-stage-opamp/roles.yaml](../examples/two-stage-opamp/roles.yaml)。
 
+## 面积与 layout handoff
+
+面积是 sizing 的约束，不是版图阶段的统计。工具链在每次候选评估时调用 `estimate_area`，得到 `low / nominal / high`、by_role 和 rule pack 版本；晋级门用三值判断：
+
+- `area_high ≤ budget`：通过；
+- `area_low > budget`：确定超面积，拒绝；
+- 区间跨过 budget：标记 uncertain，要求更准的估计或 layout 复核。
+
+面积与功耗、速度一起进入 Pareto，不做加权和。最终候选通过 `export_layout_intent` 输出 floorplan intent 与 layout delta；接受的 delta 作为新 case 回到闭环，而不是在 PEX 阶段静默修补。
+
+详见 [area-and-layout.md](area-and-layout.md)。
+
 ## 两条回路
 
 - **内环**：单条 case 内，“提出候选 → 评估 → 测量 → 修正”。
@@ -111,10 +124,10 @@ flowchart LR
 
 1. 策略层读取 spec、role map、当前最优、最近失败、剩余预算。
 2. 策略层调用 `propose_candidate`，给出角色级候选与理由（不写网表）。
-3. 工具链做静态检查：参数范围、角色一致性、测试台端口、角落完整性。
+3. 工具链做静态检查：参数范围、角色一致性、面积估计、测试台端口、角落完整性。
 4. 晋级门决定：快路径 / 慢路径 / 两者都跑。
 5. 快路径返回 `(mu, sigma, ood)`；慢路径返回测量值与原始文件哈希。
-6. 工具链写 case 记录（含 `role_map_sha256`），更新账本与代理误差模型。
+6. 工具链写 case 记录（含 `role_map_sha256` 与 area 报告），更新账本与代理误差模型。
 7. 预算控制器更新剩余预算；若触发停机条件，返回 `stop`。
 8. 策略层读取新状态，进入下一轮。
 

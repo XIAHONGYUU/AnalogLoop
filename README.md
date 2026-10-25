@@ -77,6 +77,29 @@ blocks:
 
 详见 [docs/netlist-semantics.md](docs/netlist-semantics.md)，图见 [diagrams/png/netlist-semantics.png](diagrams/png/netlist-semantics.png)，示例见 [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml)。
 
+## 面积与 layout handoff
+
+面积不是“画完版图再统计”的结果，而是和增益、带宽、噪声、功耗并列的设计变量。不考虑面积的 sizing，会系统性地偏向更大的管子、更大的电容，得到一个仿真很好但不可落地的解。
+
+角色标注让面积可以在画版图之前估出来：
+
+- **器件**：W·L·nf·m，加 S/D、contact、well、guard ring；
+- **group**：matching dummy、common centroid、matching overhead；
+- **block**：routing、periphery、PEX-fix reserve；
+- **输出**：`area_low / nominal / high`、by_role、主导 group、warnings、rule pack 版本。
+
+闭环里使用一个**三值面积门**：
+
+```text
+if area_high <= budget:      PASS
+elif area_low > budget:      REJECT
+else:                        UNCERTAIN -> refine / layout check
+```
+
+面积不是标量。建议维护 **area vs power vs speed** 的 Pareto 前沿，而不是压成一个加权和。最后通过 `export_layout_intent` 输出 floorplan intent 与 layout delta（boundary dummy、decap、finger split），review 后作为新 case 回到闭环。
+
+详见 [docs/area-and-layout.md](docs/area-and-layout.md)，图见 [diagrams/png/area-aware-loop.png](diagrams/png/area-aware-loop.png)。
+
 ## 四条设计原则
 
 1. **无状态的大脑，有状态的实验台。** LLM 不记住“上次跑到第几个点”；所有数值、版本、候选都在账本里。
@@ -125,10 +148,11 @@ blocks:
 
 | 文件 | 内容 |
 |---|---|
-| [docs/research-question.md](docs/research-question.md) | 问题、范围、四个可证伪假设 |
+| [docs/research-question.md](docs/research-question.md) | 问题、范围、五个可证伪假设 |
 | [docs/architecture.md](docs/architecture.md) | 五段架构、两条回路、失败模式 |
 | [docs/fast-verification.md](docs/fast-verification.md) | 两层验证、晋级门、95% 的度量 |
 | [docs/netlist-semantics.md](docs/netlist-semantics.md) | 网表角色、manifest、validator |
+| [docs/area-and-layout.md](docs/area-and-layout.md) | 面积模型、area gate、layout handoff |
 | [docs/gm-id-and-pdk-database.md](docs/gm-id-and-pdk-database.md) | gm/ID 与学习型 PDK 数据库 |
 | [docs/mcu-analogy.md](docs/mcu-analogy.md) | ISA、中断、存储层次 |
 | [docs/tool-contract.md](docs/tool-contract.md) | 工具白名单与调用契约 |
@@ -140,6 +164,7 @@ blocks:
 | [spec/tool-contract.yaml](spec/tool-contract.yaml) | 机器可读的工具契约 |
 | [spec/case-record.schema.json](spec/case-record.schema.json) | case 账本 schema |
 | [spec/device-roles.yaml](spec/device-roles.yaml) | 角色词表 |
+| [spec/role-mapping.yaml](spec/role-mapping.yaml) | 与 analog2layout 的词表对齐 |
 | [spec/netlist-manifest.schema.json](spec/netlist-manifest.schema.json) | 角色 manifest schema |
 | [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml) | 两级运放角色标注示例 |
 
@@ -153,8 +178,8 @@ blocks:
 
 ## 路线图
 
-- **v0.1（当前）**：架构笔记、五张原创图、工具契约、语义网表、评测协议。
-- **v0.2**：mock 闭环（不接仿真器）+ 预算账本 + 角色 manifest/validator + 重放脚本 + CI。
+- **v0.1（当前）**：架构笔记、六张原创图、工具契约、语义网表、面积模型、评测协议。
+- **v0.2**：mock 闭环（不接仿真器）+ 预算账本 + 角色 manifest/validator + 面积估计 + 重放脚本 + CI。
 - **v0.3**：ngspice + Sky130 两级运放 demo，比较 grid / DoE+BO / LLM 策略。
 - **v0.4**：快速代理 + 晋级门，报告误接受率。
 - **v1.0**：Quarto/Pages 报告 + 可复现实验。

@@ -92,6 +92,23 @@
         "metrics": {"$ref": "#/$defs/metric_map"},
         "sigma": {"$ref": "#/$defs/metric_map"},
         "ood_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "area": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["area_low_um2", "area_nominal_um2", "area_high_um2"],
+          "properties": {
+            "area_low_um2": {"type": "number", "minimum": 0},
+            "area_nominal_um2": {"type": "number", "minimum": 0},
+            "area_high_um2": {"type": "number", "minimum": 0},
+            "by_role_um2": {
+              "type": "object",
+              "additionalProperties": {"type": "number"}
+            },
+            "rules_name": {"type": "string"},
+            "rules_confidence": {"type": "string"},
+            "area_model_sha256": {"$ref": "#/$defs/hash"}
+          }
+        },
         "spice": {
           "oneOf": [
             {"type": "null"},

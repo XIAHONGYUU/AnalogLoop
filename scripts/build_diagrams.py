@@ -208,7 +208,7 @@ def architecture():
         "渲染 Deck / 测试台",
         "DoE · BO · 局部搜索",
         "调用快速代理",
-        "测量与结果解析",
+        "测量 · 面积估计",
         "写 case 账本",
     ], body_size=14.6))
 
@@ -755,6 +755,150 @@ def netlist_semantics():
     return "".join(s)
 
 
+
+def area_aware_loop():
+    W, H = 1680, 960
+    s = [svg_open(W, H)]
+    s.append(header(
+        W,
+        "面积进入闭环：从角色到 area-aware Pareto",
+        "先估面积，再花仿真；面积是带区间的约束，不是事后统计。",
+    ))
+
+    # A. candidate + roles
+    s.append(rect(50, 180, 280, 300, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(70, 214, "候选 + 角色", 17, INK, 700))
+    s.append(text(70, 238, "netlist.cir + roles.yaml", 10.8, FAINT, font=MONO))
+    chips = [
+        ("input_pair", BLUE, BLUE_BG),
+        ("current_mirror", PURPLE, PURPLE_BG),
+        ("cascode", AMBER, AMBER_BG),
+        ("output_stage", GREEN, GREEN_BG),
+        ("dummy", MUTED, GRAY_BG),
+        ("compensation", ORANGE, ORANGE_BG),
+    ]
+    for i, (role, color, bg) in enumerate(chips):
+        cy = 262 + i * 32
+        s.append(rect(70, cy, 240, 24, bg, color, 1.0, 6))
+        s.append(text(82, cy + 17, role, 10.8, color, 600, font=MONO))
+    s.append(text(70, 462, "W/L, nf, m, match, group", 10.2, FAINT))
+
+    # B. area estimator
+    s.append(rect(370, 180, 390, 300, AMBER_BG, AMBER, 1.4, 14))
+    s.append(text(390, 214, "面积估算（规则 + 角色）", 17, AMBER, 700))
+    s.append(text(390, 238, "每一项都能追溯到 rule key", 10.8, MUTED))
+    rows = [
+        ("core", "W · L · nf · m"),
+        ("+ S/D + contact", "finger pitch / OD"),
+        ("+ well + guard ring", "critical roles"),
+        ("+ matching dummies", "group / centroid"),
+        ("+ routing", "device / block"),
+        ("+ periphery + reserve", "block"),
+    ]
+    for i, (left, right) in enumerate(rows):
+        yy = 272 + i * 34
+        s.append(text(390, yy, left, 11.6, INK, 600))
+        s.append(text(600, yy, right, 10.4, MUTED, font=MONO))
+    s.append(text(390, 464, "rule pack: generic-180 · confidence: educational", 9.8, FAINT))
+
+    # C. area gate
+    s.append(rect(800, 180, 330, 300, ORANGE_BG, ORANGE, 1.4, 14))
+    s.append(text(820, 214, "面积门", 17, ORANGE, 700))
+    s.append(text(820, 238, "low / nominal / high", 10.8, MUTED, font=MONO))
+    gates = [
+        ("high ≤ budget", "PASS", GREEN),
+        ("low > budget", "REJECT", RED),
+        ("overlap", "UNCERTAIN", AMBER),
+    ]
+    for i, (cond, outcome, color) in enumerate(gates):
+        yy = 280 + i * 54
+        s.append(text(820, yy, cond, 11.6, INK, font=MONO))
+        s.append(text(1080, yy, "→ " + outcome, 12.0, color, 700, "end"))
+    s.append(f'<line x1="820" y1="438" x2="1100" y2="438" stroke="#e2c9a0" stroke-width="1"/>')
+    s.append(text(820, 462, "guardband: budget / (1 + g)", 10.4, MUTED, font=MONO))
+
+    # D. Pareto + SPICE
+    s.append(rect(1170, 180, 460, 300, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(1190, 214, "area-aware Pareto", 17, INK, 700))
+    s.append(text(1190, 238, "面积不是标量：不压成加权和", 10.8, FAINT))
+    # simple axes
+    ox, oy = 1210, 430
+    s.append(f'<line x1="{ox}" y1="{oy}" x2="{ox+360}" y2="{oy}" stroke="#c9d2de" stroke-width="1.4"/>')
+    s.append(f'<line x1="{ox}" y1="{oy}" x2="{ox}" y2="{oy-160}" stroke="#c9d2de" stroke-width="1.4"/>')
+    s.append(text(1560, 448, "area →", 10.5, MUTED, anchor="end"))
+    s.append(text(1200, 285, "power ↑", 10.5, MUTED, anchor="end"))
+    points = [(1260, 380, GREEN), (1320, 340, GREEN), (1410, 310, GREEN), (1500, 270, AMBER), (1540, 250, AMBER)]
+    for px, py, color in points:
+        s.append(circle(px, py, 6, color, WHITE, 1.2))
+    s.append(text(1410, 260, "frontier", 10.2, MUTED, anchor="middle"))
+    s.append(text(1190, 466, "SPICE 确认 → handoff", 11.2, INK, 600))
+
+    # arrows top row
+    s.append(arrow(330, 330, 366, 330, MUTED, 2.0, None, 8))
+    s.append(arrow(760, 330, 796, 330, MUTED, 2.0, None, 8))
+    s.append(arrow(1130, 330, 1166, 330, MUTED, 2.0, None, 8))
+
+    # handoff panel
+    py = 540
+    s.append(rect(60, py, 1560, 160, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(90, py + 30, "handoff 到 analog2layout", 18, INK, 700))
+    s.append(text(90, py + 52, "角色不只用于 sizing，也用于 floorplan 约束和 layout delta。", 10.8, MUTED))
+
+    hboxes = [
+        ("roles.yaml + netlist", "device / group / match", TEAL, TEAL_BG),
+        ("floorplan intent", "symmetry · bands · channels", GREEN, GREEN_BG),
+        ("layout delta", "dummy · decap · finger split", AMBER, AMBER_BG),
+        ("review", "owner · reason · area", ORANGE, ORANGE_BG),
+        ("new case", "回到闭环重新评估", RED, RED_BG),
+    ]
+    for i, (title, sub, color, bg) in enumerate(hboxes):
+        bx = 90 + i * 290
+        s.append(rect(bx, py + 70, 250, 60, bg, color, 1.2, 10))
+        s.append(text(bx + 12, py + 94, title, 12.0, color, 700, font=MONO))
+        s.append(text(bx + 12, py + 116, sub, 9.8, MUTED))
+        if i < len(hboxes) - 1:
+            s.append(arrow(bx + 250, py + 100, bx + 286, py + 100, MUTED, 1.6, None, 7))
+
+    # feedback: new case -> candidate
+    s.append(poly([(1500, py + 100), (1620, py + 100), (1620, 510), (190, 510), (190, 484)], RED, 1.8, "6 5"))
+    s.append(arrow(190, 510, 190, 484, RED, 1.8, None, 8))
+    s.append(pill(900, 510, "accepted delta → 新 case", 11.5, RED))
+
+    # bottom panel: boundaries
+    by = 730
+    s.append(rect(60, by, 1560, 190, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(90, by + 30, "面积模型的边界与用法", 17, INK, 700))
+    cols = [
+        ("会被低估的", [
+            "well sharing / guard ring",
+            "routing / block periphery",
+            "matching dummies",
+            "PEX-fix reserve",
+        ], RED),
+        ("这层不覆盖", [
+            "DRC / LVS / PEX",
+            "metal / EM / thermal",
+            "pad ring / ESD",
+            "exact placement",
+        ], MUTED),
+        ("怎么用", [
+            "low / nominal / high",
+            "三值 gate + guardband",
+            "Pareto，不加权求和",
+            "delta 作为新 case",
+        ], GREEN),
+    ]
+    for i, (title, items, color) in enumerate(cols):
+        cx = 90 + i * 500
+        s.append(text(cx, by + 62, title, 12.5, color, 700))
+        for j, item in enumerate(items):
+            s.append(text(cx, by + 88 + j * 22, "· " + item, 10.4, INK))
+
+    s.append(footer(W, H))
+    s.append("</svg>")
+    return "".join(s)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     PNG.mkdir(parents=True, exist_ok=True)
@@ -765,6 +909,7 @@ def main():
         "mcu-mapping": mcu_mapping(),
         "pdk-fastpath": pdk_fastpath(),
         "netlist-semantics": netlist_semantics(),
+        "area-aware-loop": area_aware_loop(),
     }
     for name, svg in figures.items():
         path = OUT / f"{name}.svg"

@@ -43,6 +43,7 @@
 | Slew Rate | 大信号压摆率 | 指定输入阶跃 |
 | Settling | 建立时间 | 指定误差带 |
 | THD | 总谐波失真 | 指定频率/幅度 |
+| Area | pre-layout low/nominal/high | rule pack + role manifest；不是 signoff |
 
 **测量定义必须版本化。** 如果 PM 的定义从“crossover 处相位 + 180”改成“相位裕度减去负载效应”，优化器会立刻“进步”，但设计没有变好。
 
@@ -83,7 +84,9 @@
 - **Simulations-to-spec**：达到 spec 所需 SPICE 次数的中位数 / p90；
 - **Cost-to-spec**：加权成本（快评估、SPICE、人工）；
 - **False accept rate**：代理说 pass、SPICE 说 fail 的比例；
-- **Fast-path ratio**：快路径占比。
+- **Fast-path ratio**：快路径占比；
+- **Area**：area_low / nominal / high、by_role、超出 budget 的比例；
+- **Area error**（若有 layout）：估计 vs 实际面积的 median / p95、rank correlation。
 
 ### 次指标
 
@@ -92,6 +95,16 @@
 - 角色校验失败次数（应在 SPICE 之前被拦截）；
 - 重放一致率；
 - 失败类型分布（不收敛、指标不达标、越界）。
+
+## 面积报告
+
+面积必须和性能一起报告，不能只放在附录：
+
+- 每个候选给出 `area_low / nominal / high`、主导角色、rule pack 名称与置信度；
+- 报告 `area_high ≤ budget`、`area_low > budget`、`uncertain` 三类的比例；
+- 若有已完成 layout，报告面积误差、rank correlation、low/high 覆盖率；
+- 面积与功耗、速度一起画 Pareto，不压成加权和；
+- 面积超限的解不能进入“可行解”统计。
 
 ## 统计
 
@@ -124,7 +137,8 @@ Oracle           100        -                           -      0.00
 ## 可复现清单
 
 - [ ] 仿真器版本、PDK 版本、模型哈希记录在案；
-- [ ] 每个 case 有 netlist 哈希、role manifest 哈希与原始输出哈希；
+- [ ] 每个 case 有 netlist 哈希、role manifest 哈希、area 报告哈希与原始输出哈希；
+- [ ] 面积 rule pack 版本与 area_model_sha256 记录在案；
 - [ ] 随机种子固定；
 - [ ] 代理模型版本与训练集哈希记录；
 - [ ] 测量脚本版本化；
@@ -134,6 +148,7 @@ Oracle           100        -                           -      0.00
 ## 反作弊
 
 - 角色 manifest 与网表一起冻结，不能在测试阶段改；
+- 面积 budget 与 rule pack 在测试阶段冻结；
 - 测试集不参与任何调参；
 - 不允许针对测试电路手写启发式；
 - 测量定义修改必须升版本，并重跑全部基线；
