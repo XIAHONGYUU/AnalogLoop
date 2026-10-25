@@ -10,9 +10,15 @@
 
 ![AnalogLoop architecture](diagrams/png/architecture.png)
 
+[全尺寸查看架构图](diagrams/png/architecture.png) · [SVG](diagrams/architecture.svg)
+
 ## 一句话
 
 让 LLM 只做它擅长的事——选策略、读失败、决定何时停；让确定性工具链做执行，让代理模型承担大部分快速迭代，让真实 SPICE 守住最后一道签核。
+
+**30 秒版**：面向模拟 sizing 的 Agent 架构——LLM 只负责选策略、读失败和决定何时停，确定性工具链执行，代理模型承担多数快速迭代，真实 SPICE 守住最后签核。当前交付的是架构、契约与规范，不是可运行闭环。
+
+**项目背景与我的角色**：来自本人在 TDDI 模拟设计中的 ASST 仿真工作流实践。本人提出架构与工程约束，负责语义网表、面积门、执行层与可复原性的设计取舍和文档；ASST 为既有工作流，代码不在本仓库。
 
 ## 10 分钟阅读路径
 
@@ -115,6 +121,8 @@ else:                        UNCERTAIN -> refine / layout check
 详见 [docs/area-and-layout.md](docs/area-and-layout.md)，图见 [diagrams/png/area-aware-loop.png](diagrams/png/area-aware-loop.png)。
 
 ## 执行层：ASST 与 CLI 固化
+
+> ASST 代码不在本仓库；这里只记录接口、分工与可复原性要求。
 
 AI 直接拼 Spectre/ALPS/XA 的 CLI 不好用：flag 会幻觉、环境会漂移、结果会散落。ASST 用脚本把 CLI 固化：
 
