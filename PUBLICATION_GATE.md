@@ -28,10 +28,11 @@ discussion is public. This file records the publication boundary.
 - [x] `CITATION.cff` version and date match the release.
 - [x] Git history contains no secrets or large binaries.
 
-## v0.1 record
+## v0.1.1 record
 
 - Date: 2026-10-25
 - Published: https://github.com/XIAHONGYUU/AnalogLoop
-- Scope: architecture note, four original diagrams, tool contract, case schema,
-  benchmark protocol, evidence boundaries.
+- Scope: architecture note, five original diagrams, tool contract, case schema,
+  netlist role manifest, role vocabulary, benchmark protocol, evidence boundaries.
+- Added in 0.1.1: netlist semantics layer (device roles, manifest schema, example, validator).
 - Not included: runnable simulator loop, surrogate weights, proprietary data.

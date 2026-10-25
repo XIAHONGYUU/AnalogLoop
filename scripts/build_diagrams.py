@@ -197,19 +197,19 @@ def architecture():
     s.append(block(340, y, 270, h, 2, "策略层（LLM）", BLUE, BLUE_BG, [
         "理解目标与约束",
         "选择搜索策略",
-        "诊断失败原因",
+        "按角色诊断失败",
         "决定何时停",
         "不做数值计算",
         "不持有数值状态",
     ]))
 
     s.append(block(660, y, 300, h, 3, "工具链（确定性）", AMBER, AMBER_BG, [
+        "解析角色 / 网表",
         "渲染 Deck / 测试台",
         "DoE · BO · 局部搜索",
         "调用快速代理",
         "测量与结果解析",
         "写 case 账本",
-        "白名单工具，无任意代码",
     ], body_size=14.6))
 
     # Verification block (4) with two speeds and a promotion gate.
@@ -589,6 +589,172 @@ def pdk_fastpath():
     return "".join(s)
 
 
+
+def netlist_semantics():
+    W, H = 1680, 940
+    s = [svg_open(W, H)]
+    s.append(header(
+        W,
+        "网表语义层：让 AI 看见设计意图",
+        "原理图角色标注 → netlist + roles.yaml → 校验 → 角色级修改；名字是提示，manifest 是事实。",
+    ))
+
+    # Column 1: schematic intent
+    s.append(rect(50, 180, 270, 390, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(70, 214, "原理图 / 设计意图", 17, INK, 700))
+    chips = [
+        ("input_pair", "差分输入对", BLUE, BLUE_BG),
+        ("current_mirror", "电流镜", PURPLE, PURPLE_BG),
+        ("cascode", "共源共栅", AMBER, AMBER_BG),
+        ("output_stage", "输出级", GREEN, GREEN_BG),
+        ("enable_switch", "使能开关", RED, RED_BG),
+        ("adj_switch", "ADJ 开关", ORANGE, ORANGE_BG),
+        ("dummy", "dummy", MUTED, GRAY_BG),
+    ]
+    for i, (role, label, color, bg) in enumerate(chips):
+        cy = 236 + i * 42
+        s.append(rect(70, cy, 230, 34, bg, color, 1.2, 8))
+        s.append(rect(70, cy, 5, 34, color, "none", 0, 2))
+        s.append(text(86, cy + 22, role, 12.8, color, 600, font=MONO))
+        s.append(text(196, cy + 22, label, 11.2, MUTED))
+    s.append(text(70, 552, "角色的含义由 spec/device-roles.yaml 定义", 10.8, FAINT))
+
+    # Column 2: netlist + manifest
+    s.append(rect(370, 180, 380, 160, WHITE, "#d5dde7", 1.2, 12))
+    s.append(text(390, 210, "netlist.cir", 16, INK, 700, font=MONO))
+    s.append(text(700, 210, "电气事实", 11.5, FAINT, anchor="end"))
+    netlist_lines = [
+        "MDP_1  dp   vinp tail vss nmos",
+        "MDP_2  n1   vinn tail vss nmos",
+        "MMIR_1 dp   dp   vdd vdd pmos",
+        "MMIR_2 n1   dp   vdd vdd pmos",
+        "MEN_1  nbias en  vss vss nmos",
+    ]
+    for i, line in enumerate(netlist_lines):
+        s.append(text(388, 238 + i * 19, line, 10.8, INK, font=MONO))
+    s.append(text(388, 328, "角色名只是提示，不是 schema", 10.2, FAINT))
+
+    s.append(rect(370, 355, 380, 215, WHITE, "#d5dde7", 1.2, 12))
+    s.append(text(390, 385, "roles.yaml", 16, INK, 700, font=MONO))
+    s.append(text(700, 385, "语义事实", 11.5, FAINT, anchor="end"))
+    yaml_lines = [
+        "schema_version: 0.1.0",
+        "topology: two-stage-opamp-v1",
+        "blocks:",
+        "  - id: dp",
+        "    role: input_pair",
+        "    devices: [MDP_1, MDP_2]",
+        "    match: {same_wl: true}",
+        "devices:",
+        "  MDP_1: {role: input_pair, block: dp}",
+    ]
+    for i, line in enumerate(yaml_lines):
+        s.append(text(388, 412 + i * 17, line, 10.2, INK, font=MONO))
+    s.append(text(388, 562, "manifest 是事实；inline comment 只是可读性", 9.8, FAINT))
+
+    # Column 3: validator
+    s.append(rect(800, 180, 300, 390, AMBER_BG, AMBER, 1.4, 14))
+    s.append(text(820, 214, "validator", 17, AMBER, 700, font=MONO))
+    s.append(text(820, 238, "声明的角色 vs 拓扑事实", 11.5, MUTED))
+    checks = [
+        "每个器件都有角色",
+        "角色在受控词表中",
+        "对管 W/L 一致",
+        "镜像比 = W/L 比",
+        "开关 / dummy 不被调",
+        "hash 与网表一致",
+    ]
+    for i, check in enumerate(checks):
+        s.append(text(820, 276 + i * 34, "✓", 13, GREEN, 700))
+        s.append(text(840, 276 + i * 34, check, 12.2, INK))
+    s.append(f'<line x1="820" y1="490" x2="1080" y2="490" stroke="#e2c9a0" stroke-width="1"/>')
+    s.append(text(820, 516, "任一失败 → 拒绝 patch", 12.8, RED, 700))
+    s.append(text(820, 540, "不是“看起来像”，是“可检查”", 10.8, MUTED))
+
+    # Column 4: role map
+    s.append(rect(1150, 180, 240, 390, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(1170, 214, "role map", 17, INK, 700, font=MONO))
+    s.append(text(1170, 238, "给 agent 的紧凑视图", 11.5, FAINT))
+    role_lines = [
+        "dp: gm/ID=10.2",
+        "    W/L=20/0.5",
+        "mirror: ratio=1.0",
+        "out: W/L=40/0.5",
+        "en: digital, fixed",
+        "dummy: fixed",
+        "comp: 1.2p + 1k",
+    ]
+    for i, line in enumerate(role_lines):
+        s.append(text(1168, 278 + i * 32, line, 10.4, INK, font=MONO))
+    s.append(text(1170, 528, "不是全量网表", 11.2, FAINT))
+
+    # Column 5: agent tools
+    s.append(rect(1430, 180, 200, 390, TEAL_BG, TEAL, 1.4, 14))
+    s.append(text(1448, 214, "agent tools", 17, TEAL, 700, font=MONO))
+    tools = ["resize_group()", "set_bias()", "validate_roles()", "apply_patch()", "query_devices()"]
+    for i, tool in enumerate(tools):
+        s.append(text(1448, 254 + i * 34, tool, 10.2, INK, font=MONO))
+    s.append(text(1448, 462, "只做角色级修改", 10.8, MUTED))
+    s.append(text(1448, 484, "不直接改文本", 10.8, MUTED))
+
+    # Arrows
+    s.append(arrow(320, 370, 366, 370, MUTED, 2.0, None, 8))
+    s.append(text(326, 356, "导出", 10.5, FAINT))
+    s.append(arrow(750, 370, 796, 370, MUTED, 2.0, None, 8))
+    s.append(text(756, 356, "校验", 10.5, FAINT))
+    s.append(arrow(1100, 370, 1146, 370, MUTED, 2.0, None, 8))
+    s.append(text(1106, 356, "摘要", 10.5, FAINT))
+    s.append(arrow(1390, 370, 1426, 370, MUTED, 2.0, None, 8))
+    s.append(text(1388, 356, "调用", 10.5, FAINT))
+
+    # Feedback: role-level patch
+    s.append(poly([(1530, 570), (1530, 588), (560, 588), (560, 574)], TEAL, 2.0, "6 5"))
+    s.append(arrow(560, 588, 560, 574, TEAL, 2.0, None, 8))
+    s.append(pill(1045, 588, "role-level patch：重新生成 netlist / roles", 12.0, TEAL))
+
+    # Bottom panel
+    py = 620
+    s.append(rect(60, py, 1560, 270, WHITE, "#d5dde7", 1.2, 14))
+    s.append(text(90, py + 34, "一个例子：两级运放", 19, INK, 700))
+    s.append(text(90, py + 58, "同一张表既给人看，也给工具查；每一条约束都能落到 validator 上。", 11.8, MUTED))
+
+    # table
+    s.append(text(90, py + 88, "实例", 11.8, FAINT, 600))
+    s.append(text(280, py + 88, "角色", 11.8, FAINT, 600))
+    s.append(text(500, py + 88, "约束", 11.8, FAINT, 600))
+    rows = [
+        ("MDP_1/2", "input_pair", "same W/L, common centroid"),
+        ("MMIR_1/2", "current_mirror", "ratio 1.0"),
+        ("MEN_1", "enable_switch", "digital, fixed"),
+        ("MADJ_1/2", "adj_switch", "discrete, fixed"),
+        ("MDUM_1/2", "dummy", "fixed, no signal"),
+        ("MOUT_1", "output_stage", "drives load"),
+    ]
+    for i, (inst, role, cons) in enumerate(rows):
+        yy = py + 116 + i * 24
+        s.append(text(90, yy, inst, 11.2, INK, font=MONO))
+        s.append(text(280, yy, role, 11.2, ORANGE, 600, font=MONO))
+        s.append(text(500, yy, cons, 11.0, MUTED))
+
+    # right notes
+    s.append(text(820, py + 88, "为什么名字不够", 12.5, INK, 700))
+    notes = [
+        "名字会漂移：M1 / MIR / MIRROR 可能指同一件事",
+        "名字会撒谎：叫 mirror 的管子不一定 diode-connected",
+        "名字不带约束：匹配、比例、开关的离散性",
+        "所以：manifest 是事实，validator 是仲裁，名字只是提示",
+    ]
+    for i, note in enumerate(notes):
+        s.append(text(820, py + 116 + i * 24, "· " + note, 11.0, MUTED))
+
+    s.append(text(820, py + 228, "与自动标注的关系：GANA / AMSnet-q 自动推断；Analog-DB 把子块做成命名参数。", 10.5, FAINT))
+    s.append(text(820, py + 250, "这里做的是：显式声明 + 校验 + 工具原生。", 10.5, FAINT))
+
+    s.append(footer(W, H))
+    s.append("</svg>")
+    return "".join(s)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     PNG.mkdir(parents=True, exist_ok=True)
@@ -598,6 +764,7 @@ def main():
         "fast-verification": fast_verification(),
         "mcu-mapping": mcu_mapping(),
         "pdk-fastpath": pdk_fastpath(),
+        "netlist-semantics": netlist_semantics(),
     }
     for name, svg in figures.items():
         path = OUT / f"{name}.svg"

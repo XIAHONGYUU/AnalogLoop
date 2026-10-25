@@ -62,10 +62,26 @@ LLM 的职责被刻意限制为四件事：
 
 | 存储 | 内容 | 可信度 | 用途 |
 |---|---|---|---|
-| Case 账本 | 每次评估的输入/输出/版本/哈希 | 高（事实） | 重放、审计、训练 |
+| Case 账本 | 每次评估的输入/输出/版本/哈希，含 `role_map_sha256` | 高（事实） | 重放、审计、训练 |
 | 技能/规则 | “先调第二级电流”这类启发式 | 中（可错） | 策略提示 |
 | 代理模型 | 表、GP、NN 及其训练集哈希 | 中（有分布） | 快速评估 |
 | 负知识 | 失败原因、不可行区域 | 中（需复核） | 避免重复踩坑 |
+
+## 语义网表层
+
+它不是第六个模块，而是 ①→③ 之间的一层表示。SPICE 网表是扁平的，LLM 看到 `M1` 只知道“有一个管子”，不知道它是差分对、电流镜、dummy、使能开关还是 ADJ 开关。
+
+所以在原理图/网表旁边维护一份 `roles.yaml`：
+
+- `netlist.cir`：电气事实；
+- `roles.yaml`：设计意图（角色、group、匹配、比例、可调性）；
+- `role map`：给 agent 的紧凑视图；
+- `validator`：检查声明与拓扑是否一致；
+- `role-aware tools`：让 agent 做“resize input_pair 10%”而不是“改 M3 的 W”。
+
+原则：**名字是提示，manifest 是事实，validator 是仲裁。** 角色级修改通过 `apply_role_patch` 生成新网表，先过 `validate_roles`，再花 SPICE 预算。
+
+详见 [netlist-semantics.md](netlist-semantics.md)，词表在 [../spec/device-roles.yaml](../spec/device-roles.yaml)，例子在 [../examples/two-stage-opamp/roles.yaml](../examples/two-stage-opamp/roles.yaml)。
 
 ## 两条回路
 
@@ -77,7 +93,8 @@ LLM 的职责被刻意限制为四件事：
 ```mermaid
 flowchart LR
   A[目标与约束] --> B[策略层 LLM]
-  B --> C[工具链]
+  S[语义网表 / roles.yaml] --> C[工具链（角色感知）]
+  B --> C
   C --> D{晋级门}
   D -->|快路径| E[快速代理]
   D -->|慢路径| F[真实 SPICE]
@@ -92,12 +109,12 @@ flowchart LR
 
 ## 一次迭代的数据流
 
-1. 策略层读取 spec、当前最优、最近失败、剩余预算。
-2. 策略层调用 `propose_candidate`，给出候选与理由（不写网表）。
-3. 工具链做静态检查：参数范围、拓扑连接、测试台端口、角落完整性。
+1. 策略层读取 spec、role map、当前最优、最近失败、剩余预算。
+2. 策略层调用 `propose_candidate`，给出角色级候选与理由（不写网表）。
+3. 工具链做静态检查：参数范围、角色一致性、测试台端口、角落完整性。
 4. 晋级门决定：快路径 / 慢路径 / 两者都跑。
 5. 快路径返回 `(mu, sigma, ood)`；慢路径返回测量值与原始文件哈希。
-6. 工具链写 case 记录，更新账本与代理误差模型。
+6. 工具链写 case 记录（含 `role_map_sha256`），更新账本与代理误差模型。
 7. 预算控制器更新剩余预算；若触发停机条件，返回 `stop`。
 8. 策略层读取新状态，进入下一轮。
 

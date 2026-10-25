@@ -1,0 +1,311 @@
+# AnalogLoop device role vocabulary
+# Draft 0.1.0 — 2026-10-25
+# The manifest references these ids; the validator rejects unknown roles.
+
+schema: analogloop/device-roles
+version: "0.1.0"
+status: draft
+updated: "2026-10-25"
+license: MIT
+
+principles:
+  - id: declared-not-guessed
+    statement: A role is declared by the designer and stored in the manifest; inference may propose, but only the manifest is authoritative.
+  - id: checkable-not-decorative
+    statement: Every role claim must be checkable against the netlist and the role constraints.
+  - id: group-not-single-device
+    statement: Matching, ratio, and topology constraints apply to groups; a role on a single device is not enough.
+  - id: pdk-agnostic
+    statement: Role names describe function, not model names; the PDK model stays a separate field.
+
+roles:
+  - id: input_pair
+    label: "差分输入对"
+    category: sensing
+    aliases: [MDP, INP, INN, DP]
+    polarity: [nmos, pmos]
+    typical_count: 2
+    match: required
+    tunable: true
+    criticality: signoff
+    constraints:
+      - same_wl
+      - same_orientation
+      - common_centroid_preferred
+    allowed_actions: [resize, set_bias, swap]
+    forbidden_actions: [delete, single_side_resize]
+    metrics: [gain, ugb, noise, offset, cmrr]
+    notes: "The pair sets input-referred noise and offset; always move both sides together."
+
+  - id: tail_source
+    label: "尾电流源"
+    category: bias
+    aliases: [MTAIL, TAIL]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: true
+    criticality: high
+    constraints:
+      - saturation_check
+      - headroom_check
+    allowed_actions: [resize, set_bias]
+    forbidden_actions: [delete]
+    metrics: [power, ugb, slew_rate]
+    notes: "Sets the input pair current; changing it moves gm/ID and slew rate."
+
+  - id: active_load
+    label: "有源负载"
+    category: load
+    aliases: [MLOAD, LOAD]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: true
+    criticality: high
+    constraints:
+      - saturation_check
+      - headroom_check
+    allowed_actions: [resize, set_bias]
+    forbidden_actions: [delete]
+    metrics: [gain, output_swing, power]
+    notes: "Often a current source; its output resistance sets gain."
+
+  - id: current_mirror
+    label: "电流镜"
+    category: bias
+    aliases: [MMIR, MIR, MIRROR]
+    polarity: [nmos, pmos]
+    typical_count: 2
+    match: required
+    tunable: true
+    criticality: high
+    constraints:
+      - same_wl
+      - same_orientation
+      - ratio_matches_wl
+      - diode_connected_reference
+    allowed_actions: [resize, set_ratio]
+    forbidden_actions: [delete, single_side_resize]
+    metrics: [gain, systematic_offset, power]
+    notes: "Ratio is a design intent; changing W/L on one side changes the ratio."
+
+  - id: cascode
+    label: "共源共栅管"
+    category: gain
+    aliases: [MCAS, CAS]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: true
+    criticality: high
+    constraints:
+      - gate_on_bias_net
+      - headroom_check
+      - saturation_check
+    allowed_actions: [resize, set_bias]
+    forbidden_actions: [delete]
+    metrics: [gain, output_resistance, headroom]
+    notes: "Raises output resistance at the cost of headroom."
+
+  - id: output_stage
+    label: "输出级"
+    category: output
+    aliases: [MOUT, OUT]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: true
+    criticality: signoff
+    constraints:
+      - drives_load
+      - saturation_check
+      - slew_check
+    allowed_actions: [resize, set_bias]
+    forbidden_actions: [delete]
+    metrics: [output_swing, slew_rate, settling, power]
+    notes: "Sized for load and slew; often the dominant power consumer."
+
+  - id: bias_reference
+    label: "偏置基准"
+    category: bias
+    aliases: [MBIAS, BIAS, IREF]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: high
+    constraints:
+      - current_density_check
+      - saturation_check
+    allowed_actions: [inspect]
+    forbidden_actions: [resize, set_bias, delete]
+    metrics: [bias_current, power]
+    notes: "Usually frozen after the bias network is fixed; change with the bias plan, not per candidate."
+
+  - id: enable_switch
+    label: "使能开关"
+    category: switch
+    aliases: [MEN, EN, PD]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: high
+    constraints:
+      - digital_control
+      - off_leakage_check
+    allowed_actions: [set_state]
+    forbidden_actions: [resize, analog_bias, delete]
+    metrics: [leakage, startup]
+    notes: "Digital control; do not optimize it as an analog bias device."
+
+  - id: adj_switch
+    label: "ADJ / 配置开关"
+    category: switch
+    aliases: [MADJ, ADJ, TRIM]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: high
+    constraints:
+      - digital_control
+      - discrete_state
+    allowed_actions: [set_state]
+    forbidden_actions: [resize, analog_bias, delete]
+    metrics: [trim_range, leakage]
+    notes: "Discrete trim/configuration; its state is part of the candidate, not a continuous size."
+
+  - id: dummy
+    label: "dummy 管"
+    category: matching
+    aliases: [MDUM, DUM, DUMMY]
+    polarity: [nmos, pmos]
+    typical_count: 2
+    match: required
+    tunable: false
+    criticality: low
+    constraints:
+      - fixed_geometry
+      - no_signal_path
+      - same_environment
+    allowed_actions: [inspect]
+    forbidden_actions: [resize, set_bias, connect_signal, delete]
+    metrics: [matching]
+    notes: "Matching aid, not a functional device; must not enter the optimization vector."
+
+  - id: compensation_cap
+    label: "补偿电容"
+    category: passive
+    aliases: [CC, CCOMP]
+    polarity: []
+    typical_count: 1
+    match: optional
+    tunable: true
+    criticality: signoff
+    constraints:
+      - stability_check
+      - area_check
+    allowed_actions: [resize]
+    forbidden_actions: [delete]
+    metrics: [pm, ugb, settling]
+    notes: "Primary stability knob in a two-stage op-amp."
+
+  - id: nulling_resistor
+    label: "调零电阻"
+    category: passive
+    aliases: [RZ, RNULL]
+    polarity: []
+    typical_count: 1
+    match: optional
+    tunable: true
+    criticality: high
+    constraints:
+      - stability_check
+      - process_spread_check
+    allowed_actions: [resize]
+    forbidden_actions: [delete]
+    metrics: [pm, settling]
+    notes: "Moves the compensation zero; interacts with the compensation cap."
+
+  - id: load_cap
+    label: "负载电容"
+    category: passive
+    aliases: [CL, CLOAD]
+    polarity: []
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: signoff
+    constraints:
+      - fixed_by_system
+    allowed_actions: [inspect]
+    forbidden_actions: [resize, delete]
+    metrics: [ugb, pm, settling]
+    notes: "Part of the testbench, not a design variable."
+
+  - id: esd
+    label: "ESD 器件"
+    category: reliability
+    aliases: [MESD, ESD]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: signoff
+    constraints:
+      - esd_rule_check
+    allowed_actions: [inspect]
+    forbidden_actions: [resize, delete]
+    metrics: [esd_rating]
+    notes: "Out of the sizing loop; included so the agent does not touch it."
+
+  - id: decap
+    label: "去耦电容"
+    category: passive
+    aliases: [CDECAP, DECAP]
+    polarity: []
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: medium
+    constraints:
+      - area_check
+    allowed_actions: [inspect]
+    forbidden_actions: [resize, delete]
+    metrics: [supply_noise]
+    notes: "Usually fixed by the power plan."
+
+  - id: startup
+    label: "启动电路"
+    category: reliability
+    aliases: [MSTART, START]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: signoff
+    constraints:
+      - startup_check
+      - leakage_check
+    allowed_actions: [inspect]
+    forbidden_actions: [resize, delete]
+    metrics: [startup_time, leakage]
+    notes: "Needed for self-biased loops; validate across corners."
+
+  - id: protection
+    label: "保护 / 钳位"
+    category: reliability
+    aliases: [MCLAMP, CLAMP]
+    polarity: [nmos, pmos]
+    typical_count: 1
+    match: optional
+    tunable: false
+    criticality: signoff
+    constraints:
+      - clamp_voltage_check
+    allowed_actions: [inspect]
+    forbidden_actions: [resize, delete]
+    metrics: [reliability]
+    notes: "Out of the sizing loop."

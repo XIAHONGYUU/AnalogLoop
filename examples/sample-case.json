@@ -14,7 +14,8 @@
       "ibias_ua": 20.0
     },
     "corner": "tt",
-    "temperature_c": 27
+    "temperature_c": 27,
+    "role_map_sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
   },
   "evaluation": {
     "mode": "both",
@@ -64,6 +65,7 @@
     "tool_version": "0.1.0",
     "git_commit": "0000000",
     "pdk": "sky130A",
+    "role_map_version": "0.1.0",
     "notes": "Synthetic example, not a simulation result."
   },
   "prev_hash": "GENESIS",

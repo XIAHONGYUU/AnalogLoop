@@ -1,0 +1,109 @@
+# AnalogLoop example role manifest
+# This is the source of truth for roles. netlist.cir is illustrative only.
+
+schema_version: "0.1.0"
+topology: two-stage-opamp-v1
+pdk: illustrative-level1
+netlist: netlist.cir
+netlist_sha256: "sha256:23031d1f044bf2174520e5eef7b4d45500b95b93ab01d4813a3ce9f814631e7e"
+
+blocks:
+  - id: dp
+    role: input_pair
+    devices: [MDP_1, MDP_2]
+    match: {same_wl: true, same_orientation: true, common_centroid: preferred}
+    tunable: true
+    constraints: {gm_id: [8, 15], vds_min: 0.15}
+
+  - id: mirror_load
+    role: current_mirror
+    devices: [MMIR_1, MMIR_2]
+    match: {same_wl: true, same_orientation: true}
+    tunable: true
+    ratio: 1.0
+
+  - id: tail
+    role: tail_source
+    devices: [MTAIL_1]
+    tunable: true
+    constraints: {vds_min: 0.15}
+
+  - id: out
+    role: output_stage
+    devices: [MOUT_1]
+    tunable: true
+    constraints: {drives_load: true}
+
+  - id: load
+    role: active_load
+    devices: [MLOAD_1]
+    tunable: true
+    constraints: {vds_min: 0.15}
+
+  - id: bias_n
+    role: bias_reference
+    devices: [MBIAS_1]
+    tunable: false
+
+  - id: bias_p
+    role: bias_reference
+    devices: [MBIAS_2, MBIAS_3]
+    tunable: false
+
+  - id: en
+    role: enable_switch
+    devices: [MEN_1]
+    tunable: false
+    constraints: {digital: true}
+
+  - id: adj
+    role: adj_switch
+    devices: [MADJ_1, MADJ_2]
+    tunable: false
+    constraints: {digital: true, discrete: true}
+
+  - id: dummy
+    role: dummy
+    devices: [MDUM_1, MDUM_2]
+    match: {same_wl: true, same_orientation: true}
+    tunable: false
+    constraints: {fixed: true, no_signal_path: true}
+
+  - id: cc
+    role: compensation_cap
+    devices: [CC1]
+    tunable: true
+    constraints: {stability_critical: true}
+
+  - id: rz
+    role: nulling_resistor
+    devices: [RZ1]
+    tunable: true
+    constraints: {stability_critical: true}
+
+  - id: cload
+    role: load_cap
+    devices: [CLOAD]
+    tunable: false
+
+devices:
+  MDP_1: {role: input_pair, block: dp, model: nmos, tunable: true, criticality: signoff, constraints: {gm_id: [8, 15], vds_min: 0.15}}
+  MDP_2: {role: input_pair, block: dp, model: nmos, tunable: true, criticality: signoff, constraints: {gm_id: [8, 15], vds_min: 0.15}}
+  MMIR_1: {role: current_mirror, block: mirror_load, model: pmos, tunable: true, criticality: high}
+  MMIR_2: {role: current_mirror, block: mirror_load, model: pmos, tunable: true, criticality: high}
+  MTAIL_1: {role: tail_source, block: tail, model: nmos, tunable: true, criticality: high, constraints: {vds_min: 0.15}}
+  MOUT_1: {role: output_stage, block: out, model: nmos, tunable: true, criticality: signoff, constraints: {drives_load: true}}
+  MLOAD_1: {role: active_load, block: load, model: pmos, tunable: true, criticality: high, constraints: {vds_min: 0.15}}
+  MBIAS_1: {role: bias_reference, block: bias_n, model: nmos, tunable: false, criticality: high}
+  MBIAS_2: {role: bias_reference, block: bias_p, model: pmos, tunable: false, criticality: high}
+  MBIAS_3: {role: bias_reference, block: bias_p, model: pmos, tunable: false, criticality: high}
+  MEN_1: {role: enable_switch, block: en, model: nmos, tunable: false, criticality: high, constraints: {digital: true}}
+  MADJ_1: {role: adj_switch, block: adj, model: nmos, tunable: false, criticality: high, constraints: {digital: true, discrete: true}}
+  MADJ_2: {role: adj_switch, block: adj, model: nmos, tunable: false, criticality: high, constraints: {digital: true, discrete: true}}
+  MDUM_1: {role: dummy, block: dummy, model: nmos, tunable: false, criticality: low, constraints: {fixed: true, no_signal_path: true}}
+  MDUM_2: {role: dummy, block: dummy, model: nmos, tunable: false, criticality: low, constraints: {fixed: true, no_signal_path: true}}
+  CC1: {role: compensation_cap, block: cc, model: C, tunable: true, criticality: signoff, constraints: {stability_critical: true}}
+  RZ1: {role: nulling_resistor, block: rz, model: R, tunable: true, criticality: high, constraints: {stability_critical: true}}
+  CLOAD: {role: load_cap, block: cload, model: C, tunable: false, criticality: signoff}
+
+unannotated: []

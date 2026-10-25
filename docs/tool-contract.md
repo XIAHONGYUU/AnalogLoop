@@ -19,6 +19,10 @@
 |---|---|---|---|---|
 | `set_spec` | 写入/更新 spec | 0 | 写 | spec 必须通过 schema |
 | `get_state` | 读取受控状态视图 | 0 | 读 | 不返回全量账本 |
+| `get_role_map` | 读取紧凑角色视图 | 0 | 读 | 不返回全量网表 |
+| `query_devices` | 按角色/组查询器件 | 低 | 读 | 返回参数与约束 |
+| `validate_roles` | 校验 manifest 与拓扑 | 低 | 写日志 | 失败不花 SPICE |
+| `apply_role_patch` | 角色级修改并生成新网表 | 低 | 写 | 必须重新校验 |
 | `propose_candidate` | 提出候选与理由 | 0 | 写草稿 | 参数必须在范围内 |
 | `check_feasibility` | 静态/解析可行性预检 | 低 | 读 | 不调用 SPICE |
 | `evaluate_fast` | 快速代理评估 | 快 | 写缓存 | 必须返回 sigma / OOD |
@@ -93,6 +97,33 @@
   }
 }
 ```
+
+## 角色级补丁
+
+策略层不应该直接改网表文本。唯一允许的修改入口是 `apply_role_patch`：
+
+```json
+{
+  "action": "apply_role_patch",
+  "args": {
+    "candidate_id": "cand-0017",
+    "block": "tail",
+    "action": "resize",
+    "factor": 1.2
+  },
+  "rationale": "Increase tail current 20% to raise UGB; keep input pair gm/ID."
+}
+```
+
+工具链必须：
+
+1. 检查 block 是否存在，role 是否 `tunable`；
+2. 把角色级意图翻译成具体 W/L/M（同组器件一起移动）；
+3. 重新生成 `netlist.cir` 与 `roles.yaml`；
+4. 调 `validate_roles`；
+5. 只有校验通过，才允许 `simulate_spice`。
+
+失败时返回 typed 错误（`ROLE_NOT_TUNABLE`、`VALIDATION_FAILED`），并写进 case 记录。这样“AI 改了网表”永远是一条可审计的角色级补丁，而不是一段无法解释的文本 diff。
 
 ## 停机条件
 

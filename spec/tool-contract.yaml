@@ -109,6 +109,99 @@ tools:
         constraints: {type: object}
         last_decision: {type: object}
 
+  - name: get_role_map
+    summary: Return a compact role map for the active candidate; never the full netlist.
+    cost: {unit: none, amount: 0}
+    side_effects: [read]
+    idempotent: true
+    input:
+      type: object
+      properties:
+        spec_id: {type: string}
+        candidate_id: {type: string}
+    output:
+      type: object
+      required: [topology, blocks, role_map_sha256]
+      properties:
+        topology: {type: string}
+        blocks:
+          type: array
+          items: {type: object}
+        role_map_sha256: {type: string}
+    errors: [UNKNOWN_SPEC, UNKNOWN_CANDIDATE]
+
+  - name: query_devices
+    summary: Query devices by role or block, with current parameters and constraints.
+    cost: {unit: fast, amount: 1}
+    side_effects: [read]
+    idempotent: true
+    input:
+      type: object
+      properties:
+        role: {type: string}
+        block: {type: string}
+        candidate_id: {type: string}
+    output:
+      type: object
+      properties:
+        devices:
+          type: array
+          items: {type: object}
+        total: {type: integer}
+    errors: [UNKNOWN_ROLE, UNKNOWN_BLOCK]
+
+  - name: validate_roles
+    summary: Check the declared role manifest against the netlist and role constraints.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: true
+    input:
+      type: object
+      required: [candidate_id]
+      properties:
+        candidate_id: {type: string}
+    output:
+      type: object
+      required: [ok, issues]
+      properties:
+        ok: {type: boolean}
+        issues:
+          type: array
+          items:
+            type: object
+            required: [code, message]
+            properties:
+              code: {type: string}
+              message: {type: string}
+              device: {type: string}
+              block: {type: string}
+    errors: [UNKNOWN_CANDIDATE]
+
+  - name: apply_role_patch
+    summary: Apply a role-level change and regenerate the netlist deterministically.
+    cost: {unit: fast, amount: 1}
+    side_effects: [write]
+    idempotent: false
+    input:
+      type: object
+      required: [candidate_id, block, action]
+      properties:
+        candidate_id: {type: string}
+        block: {type: string}
+        action: {type: string, enum: [resize, set_bias, set_state]}
+        factor: {type: number, exclusiveMinimum: 0}
+        value: {type: number}
+        state: {type: string, enum: [on, off]}
+    output:
+      type: object
+      required: [new_candidate_id, netlist_sha256, role_map_sha256]
+      properties:
+        new_candidate_id: {type: string}
+        netlist_sha256: {type: string}
+        role_map_sha256: {type: string}
+        validation: {type: object}
+    errors: [UNKNOWN_BLOCK, ROLE_NOT_TUNABLE, VALIDATION_FAILED]
+
   - name: propose_candidate
     summary: Propose a sizing candidate with a short rationale; the tool does not run anything.
     cost: {unit: none, amount: 0}
@@ -352,6 +445,8 @@ security:
     statement: SPICE concurrency and per-run call counts are capped by the controller.
   - id: audit
     statement: Every call records actor, request id, timestamp, argument hash, result hash.
+  - id: role-patch-only
+    statement: The policy layer edits through role-level patches, not raw netlist text.
 
 versioning:
   contract_version: "0.1"

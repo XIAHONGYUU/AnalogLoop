@@ -11,6 +11,7 @@ Checks:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -155,8 +156,165 @@ def check_forbidden() -> None:
         ok("no forbidden attachment or absolute-path references")
 
 
+
+UNIT = {"f": 1e-15, "p": 1e-12, "n": 1e-9, "u": 1e-6, "m": 1e-3, "k": 1e3, "meg": 1e6, "": 1.0}
+
+
+def parse_quantity(token: str):
+    match = re.fullmatch(r"([0-9]*\.?[0-9]+)([a-zA-Z]*)", str(token).strip())
+    if not match:
+        return None
+    value = float(match.group(1))
+    unit = match.group(2).lower()
+    return value * UNIT.get(unit, 1.0)
+
+
+def parse_netlist(rel: str):
+    path = ROOT / rel
+    devices = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("*") or stripped.startswith("."):
+            continue
+        parts = stripped.split()
+        if not parts:
+            continue
+        head = parts[0][0].upper()
+        if head == "M" and len(parts) >= 6:
+            params = {}
+            for token in parts[6:]:
+                if "=" in token:
+                    key, value = token.split("=", 1)
+                    params[key.upper()] = value
+            devices[parts[0]] = {"kind": "mos", "nodes": parts[1:5], "model": parts[5], "params": params}
+        elif head in {"C", "R"} and len(parts) >= 4:
+            devices[parts[0]] = {"kind": "passive", "nodes": parts[1:3], "model": head, "params": {"VALUE": parts[3]}}
+    return devices
+
+
+def check_semantics() -> None:
+    roles_doc = load_yaml("spec/device-roles.yaml")
+    manifest = load_yaml("examples/two-stage-opamp/roles.yaml")
+    schema = load_json("spec/netlist-manifest.schema.json")
+    if not roles_doc or not manifest or not schema:
+        return
+    role_ids = {item["id"] for item in roles_doc.get("roles", []) if isinstance(item, dict) and "id" in item}
+    if not role_ids:
+        fail("device-roles.yaml lists no roles")
+        return
+    ok(f"device role vocabulary has {len(role_ids)} roles")
+
+    try:
+        Draft202012Validator.check_schema(schema)
+        validator = Draft202012Validator(schema)
+        problems = sorted(validator.iter_errors(manifest), key=lambda e: e.path)
+        if problems:
+            for problem in problems:
+                fail(f"roles.yaml: {list(problem.path)}: {problem.message}")
+            return
+        ok("roles.yaml validates against the manifest schema")
+    except Exception as exc:
+        fail(f"manifest schema invalid: {exc}")
+        return
+
+    netlist_file = ROOT / "examples/two-stage-opamp/netlist.cir"
+    if not netlist_file.exists():
+        fail("missing examples/two-stage-opamp/netlist.cir")
+        return
+    netlist = parse_netlist("examples/two-stage-opamp/netlist.cir")
+    ok(f"netlist has {len(netlist)} M/C/R devices")
+
+    digest = hashlib.sha256(netlist_file.read_bytes()).hexdigest()
+    declared = manifest["netlist_sha256"].removeprefix("sha256:")
+    if declared != digest:
+        fail("roles.yaml netlist_sha256 does not match netlist.cir")
+    else:
+        ok("manifest hash matches netlist.cir")
+
+    manifest_devices = set(manifest["devices"])
+    if manifest_devices != set(netlist):
+        missing = sorted(set(netlist) - manifest_devices)
+        extra = sorted(manifest_devices - set(netlist))
+        fail(f"device coverage mismatch: missing={missing}, extra={extra}")
+    else:
+        ok(f"all {len(netlist)} netlist devices are annotated")
+
+    seen = {}
+    block_ids = set()
+    for block in manifest["blocks"]:
+        bid = block["id"]
+        role = block["role"]
+        if bid in block_ids:
+            fail(f"duplicate block id: {bid}")
+        block_ids.add(bid)
+        if role not in role_ids:
+            fail(f"block {bid}: unknown role {role}")
+        for dev in block["devices"]:
+            if dev in seen:
+                fail(f"device {dev} belongs to both {seen[dev]} and {bid}")
+            seen[dev] = bid
+            if dev not in netlist:
+                fail(f"block {bid}: device {dev} not in netlist")
+                continue
+            entry = manifest["devices"].get(dev)
+            if not entry:
+                fail(f"block {bid}: device {dev} has no device entry")
+                continue
+            if entry["role"] != role:
+                fail(f"device {dev}: role {entry['role']} != block role {role}")
+            if entry["block"] != bid:
+                fail(f"device {dev}: block {entry['block']} != {bid}")
+
+        match = block.get("match", {})
+        if match.get("same_wl"):
+            values = []
+            for dev in block["devices"]:
+                params = netlist.get(dev, {}).get("params", {})
+                w = parse_quantity(params.get("W", ""))
+                l = parse_quantity(params.get("L", ""))
+                if w is None or l is None:
+                    fail(f"block {bid}: cannot check same_wl for {dev}")
+                    continue
+                values.append((round(w, 18), round(l, 18)))
+            if len(set(values)) > 1:
+                fail(f"block {bid}: same_wl violated ({values})")
+
+        if role == "current_mirror" and "ratio" in block:
+            ratios = []
+            for dev in block["devices"]:
+                params = netlist.get(dev, {}).get("params", {})
+                w = parse_quantity(params.get("W", ""))
+                l = parse_quantity(params.get("L", ""))
+                if w and l:
+                    ratios.append(w / l)
+            if len(ratios) >= 2:
+                actual = ratios[1] / ratios[0]
+                target = block["ratio"]
+                if abs(actual - target) > 0.01 * target:
+                    fail(f"block {bid}: mirror ratio {actual:.3f} != declared {target}")
+
+        if role in {"enable_switch", "adj_switch", "dummy"}:
+            for dev in block["devices"]:
+                entry = manifest["devices"].get(dev, {})
+                if entry.get("tunable", True):
+                    fail(f"device {dev}: {role} must be tunable: false")
+                if role in {"enable_switch", "adj_switch"}:
+                    if not entry.get("constraints", {}).get("digital"):
+                        fail(f"device {dev}: {role} must declare digital: true")
+
+    unannotated = set(manifest.get("unannotated", []))
+    missing_entries = set(manifest["devices"]) - set(seen)
+    if missing_entries:
+        fail(f"devices not assigned to a block: {sorted(missing_entries)}")
+    extra_netlist = set(netlist) - set(seen) - unannotated
+    if extra_netlist:
+        fail(f"netlist devices without role: {sorted(extra_netlist)}")
+    if not missing_entries and not extra_netlist:
+        ok("every netlist device has exactly one role block")
+
+
 def check_assets() -> None:
-    for name in ["architecture", "fast-verification", "mcu-mapping", "pdk-fastpath"]:
+    for name in ["architecture", "fast-verification", "mcu-mapping", "pdk-fastpath", "netlist-semantics"]:
         for rel in [f"diagrams/{name}.svg", f"diagrams/png/{name}.png"]:
             path = ROOT / rel
             if not path.exists():
@@ -191,6 +349,7 @@ def main() -> int:
     print("=" * 60)
     check_yaml_files()
     check_schema()
+    check_semantics()
     check_links()
     check_forbidden()
     check_assets()

@@ -39,7 +39,7 @@
 
 1. **目标与约束**：设计目标、约束、参数空间、PVT 角落，以及一个可行性预检。
 2. **策略层（LLM）**：理解目标、选择搜索策略、诊断失败、决定何时停；**不做数值计算，不持有数值状态**。
-3. **工具链（确定性）**：渲染 deck / 测试台、DoE/BO、调用代理、测量、写账本；只暴露白名单工具。
+3. **工具链（确定性）**：解析角色与网表、渲染 deck / 测试台、DoE/BO、调用代理、测量、写账本；只暴露白名单工具。
 4. **验证层（两种速度）**：4a 快速代理；4b 真实 SPICE；中间是晋级门。
 5. **记忆与知识**：case 账本、技能/规则、代理模型、负知识；支持重放。
 
@@ -52,11 +52,37 @@
 
 更完整的说明见 [docs/architecture.md](docs/architecture.md)。
 
-## 三条设计原则
+## 网表语义层：让 AI 看见设计意图
+
+SPICE 网表是扁平的：`M1 d g s b nmos` 只说明“有一个管子”，不说明它是输入对、电流镜、cascode、dummy、使能开关还是 ADJ 开关。LLM 只能猜；猜错就会破坏匹配、改错比例、动 dummy。
+
+所以这个仓库在原理图/网表旁边加一份 `roles.yaml`：
+
+- 角色：`input_pair`（对管）、`current_mirror`（电流镜）、`cascode`、`output_stage`（输出管）、`enable_switch`（使能）、`adj_switch`（ADJ）、`dummy` 等；
+- 原理图里可以给 instance 加 `role` / `group` 属性，导出时生成 manifest；没有属性时用命名前缀和推断冷启动；
+- 每个角色带 group、match、ratio、tunable、constraints；
+- `validator` 检查声明与拓扑是否一致（同 W/L、镜像比、开关/dummy 不可调）；
+- agent 只做“resize input_pair 10%”这类**角色级补丁**，不直接改文本；
+- `role_map_sha256` 写进 case 记录，支持重放。
+
+原则：**名字是提示，manifest 是事实，validator 是仲裁。**
+
+```yaml
+blocks:
+  - id: dp
+    role: input_pair
+    devices: [MDP_1, MDP_2]
+    match: {same_wl: true, same_orientation: true, common_centroid: preferred}
+```
+
+详见 [docs/netlist-semantics.md](docs/netlist-semantics.md)，图见 [diagrams/png/netlist-semantics.png](diagrams/png/netlist-semantics.png)，示例见 [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml)。
+
+## 四条设计原则
 
 1. **无状态的大脑，有状态的实验台。** LLM 不记住“上次跑到第几个点”；所有数值、版本、候选都在账本里。
 2. **仿真预算是一等公民。** 每个决策都要能回答：这次评估花多少、预期换回多少信息、什么时候停止。
 3. **一切可重放。** 网表、模型、种子、工具版本、代理版本都有哈希；给定账本，可以重放出一条相同的决策链。
+4. **设计意图显式化。** 器件的角色、匹配、比例、可调性写进 manifest；名字只是提示，validator 是仲裁。
 
 ## 两条快速验证路线
 
@@ -99,9 +125,10 @@
 
 | 文件 | 内容 |
 |---|---|
-| [docs/research-question.md](docs/research-question.md) | 问题、范围、三个可证伪假设 |
+| [docs/research-question.md](docs/research-question.md) | 问题、范围、四个可证伪假设 |
 | [docs/architecture.md](docs/architecture.md) | 五段架构、两条回路、失败模式 |
 | [docs/fast-verification.md](docs/fast-verification.md) | 两层验证、晋级门、95% 的度量 |
+| [docs/netlist-semantics.md](docs/netlist-semantics.md) | 网表角色、manifest、validator |
 | [docs/gm-id-and-pdk-database.md](docs/gm-id-and-pdk-database.md) | gm/ID 与学习型 PDK 数据库 |
 | [docs/mcu-analogy.md](docs/mcu-analogy.md) | ISA、中断、存储层次 |
 | [docs/tool-contract.md](docs/tool-contract.md) | 工具白名单与调用契约 |
@@ -112,6 +139,9 @@
 | [docs/evidence-boundaries.md](docs/evidence-boundaries.md) | 哪些是事实、假设、未知 |
 | [spec/tool-contract.yaml](spec/tool-contract.yaml) | 机器可读的工具契约 |
 | [spec/case-record.schema.json](spec/case-record.schema.json) | case 账本 schema |
+| [spec/device-roles.yaml](spec/device-roles.yaml) | 角色词表 |
+| [spec/netlist-manifest.schema.json](spec/netlist-manifest.schema.json) | 角色 manifest schema |
+| [examples/two-stage-opamp/roles.yaml](examples/two-stage-opamp/roles.yaml) | 两级运放角色标注示例 |
 
 ## 不是什么
 
@@ -123,8 +153,8 @@
 
 ## 路线图
 
-- **v0.1（当前）**：架构笔记、四张原创图、工具契约、评测协议。
-- **v0.2**：mock 闭环（不接仿真器）+ 预算账本 + 重放脚本 + CI。
+- **v0.1（当前）**：架构笔记、五张原创图、工具契约、语义网表、评测协议。
+- **v0.2**：mock 闭环（不接仿真器）+ 预算账本 + 角色 manifest/validator + 重放脚本 + CI。
 - **v0.3**：ngspice + Sky130 两级运放 demo，比较 grid / DoE+BO / LLM 策略。
 - **v0.4**：快速代理 + 晋级门，报告误接受率。
 - **v1.0**：Quarto/Pages 报告 + 可复现实验。

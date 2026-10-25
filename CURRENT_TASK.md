@@ -2,21 +2,23 @@
 
 ## 当前目标
 
-维护并推进 AnalogLoop v0.2：在已发布的 v0.1 架构笔记基础上，实现一个不依赖
-仿真器的 mock 闭环，验证预算账本、晋级门、case 哈希链与重放。
+维护 AnalogLoop v0.1.1（语义网表层），并推进 v0.2 mock 闭环：让 agent 通过
+角色级补丁修改网表，验证预算账本、晋级门、case 哈希链与重放。
 
 ## 状态
 
 - v0.1 已发布：AnalogLoop（https://github.com/XIAHONGYUU/AnalogLoop）
-- 文档、四张原创图、工具契约、case schema、评测协议已落地。
-- 本地验证通过；CI 已配置（docs 校验 + SVG 确定性检查）。
+- 五张原创图：architecture、fast-verification、mcu-mapping、pdk-fastpath、netlist-semantics。
+- 语义网表：`spec/device-roles.yaml`、`spec/netlist-manifest.schema.json`、
+  示例 netlist/roles、validator 已落地。
+- 本地验证 34 项通过；CI 已配置（docs 校验 + SVG 确定性检查）。
 - 尚未实现可运行的 mock 闭环；尚未接 ngspice。
 
 ## 下一步原子动作
 
 1. 建立 `analogloop/` Python 包骨架。
 2. 实现 mock 仿真器、预算账本、晋级门、JSONL 哈希链。
-3. 实现重放命令与单元测试。
+3. 实现角色 manifest 解析、角色级补丁与重放。
 4. 在 README 增加 v0.2 的复现命令。
 
 ## 约束
@@ -28,8 +30,9 @@
 
 ## 完成标准
 
-- 四张 PNG 视觉检查通过。
+- 五张 PNG 视觉检查通过。
 - `spec/tool-contract.yaml` 可被 YAML 解析。
 - `spec/case-record.schema.json` 可被 JSON Schema 校验器加载。
+- `examples/two-stage-opamp/roles.yaml` 通过 manifest schema 与角色校验。
 - mock 闭环可在固定种子下重放。
 - GitHub 仓库公开可访问，README 首图正常渲染。

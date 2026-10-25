@@ -29,7 +29,10 @@
 CPU 的指令集是软件与硬件之间的契约：有限、typed、可验证。Agent 也需要这样一套契约：
 
 - `set_spec`：写入目标与约束；
+- `get_role_map`：读取紧凑角色视图；
 - `propose_candidate`：提出候选与理由；
+- `validate_roles`：校验角色声明与拓扑；
+- `apply_role_patch`：角色级修改；
 - `evaluate_fast`：请求快速评估；
 - `simulate_spice`：请求真值；
 - `measure`：按固定定义读取指标；

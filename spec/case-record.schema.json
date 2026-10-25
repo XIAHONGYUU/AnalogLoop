@@ -58,7 +58,8 @@
           "minProperties": 1
         },
         "corner": {"type": "string", "minLength": 1},
-        "temperature_c": {"type": "number"}
+        "temperature_c": {"type": "number"},
+        "role_map_sha256": {"$ref": "#/$defs/hash"}
       }
     },
     "spice_eval": {
@@ -142,6 +143,7 @@
         "tool_version": {"type": "string"},
         "git_commit": {"type": "string", "pattern": "^[a-f0-9]{7,40}$"},
         "pdk": {"type": "string"},
+        "role_map_version": {"type": "string"},
         "notes": {"type": "string"}
       }
     }

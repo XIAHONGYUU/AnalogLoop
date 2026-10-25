@@ -1,0 +1,59 @@
+* AnalogLoop example: two-stage op-amp (ILLUSTRATIVE ONLY)
+* Level-1 models, not a Sky130 design. Not simulated. No silicon data.
+* roles.yaml is the source of truth for roles; comments below are for readability.
+*
+* @role input_pair block=dp match=MDP_2 same_wl=true
+MDP_1  dp    vinp tail vss nmos W=20u L=0.5u
+MDP_2  n1    vinn tail vss nmos W=20u L=0.5u
+*
+* @role current_mirror block=mirror_load match=MMIR_2 same_wl=true
+MMIR_1 dp    dp   vdd vdd pmos W=10u L=0.5u
+MMIR_2 n1    dp   vdd vdd pmos W=10u L=0.5u
+*
+* @role tail_source block=tail
+MTAIL_1 tail nbias vss vss nmos W=10u L=1.0u
+*
+* @role output_stage block=out
+MOUT_1 out n1 vss vss nmos W=40u L=0.5u
+*
+* @role active_load block=load
+MLOAD_1 out pbias vdd vdd pmos W=20u L=0.5u
+*
+* @role bias_reference block=bias_n
+MBIAS_1 nbias nbias vss vss nmos W=5u L=1.0u
+*
+* @role bias_reference block=bias_p
+MBIAS_2 pbias pbias vdd vdd pmos W=5u L=1.0u
+MBIAS_3 pbias nbias vdd vdd pmos W=5u L=1.0u
+*
+* @role enable_switch block=en digital=true
+MEN_1 nbias en vss vss nmos W=2u L=1.0u
+*
+* @role adj_switch block=adj digital=true
+MADJ_1 tail adj1 vss vss nmos W=2u L=1.0u
+MADJ_2 tail adj2 vss vss nmos W=2u L=1.0u
+*
+* @role dummy block=dummy fixed=true
+MDUM_1 vss vss vss vss nmos W=20u L=0.5u
+MDUM_2 vss vss vss vss nmos W=20u L=0.5u
+*
+* compensation network
+CC1  n1 nz 1.2p
+RZ1  nz out 1k
+CLOAD out vss 1p
+*
+* bias and supplies
+IBIAS vdd nbias 20u
+VDD   vdd vss 1.8
+VINP  vinp 0 DC 0.9 AC 0.5
+VINN  vinn 0 DC 0.9 AC -0.5
+VEN   en 0 1.8
+VADJ1 adj1 0 0
+VADJ2 adj2 0 0
+*
+.model nmos nmos (LEVEL=1 VTO=0.45 KP=200u LAMBDA=0.05)
+.model pmos pmos (LEVEL=1 VTO=-0.45 KP=100u LAMBDA=0.05)
+*
+.op
+.ac dec 20 1 1G
+.end
